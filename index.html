@@ -475,7 +475,7 @@ async function submitData() {
     let respText = "";
     try {
       respText = await response.text();
-    } catch confirmErr {
+    } catch (confirmErr) {
       appendDebug("❌ Response text read failed: " + (confirmErr?.message || String(confirmErr)));
     }
 
