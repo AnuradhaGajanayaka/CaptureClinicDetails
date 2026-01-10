@@ -109,8 +109,10 @@
  * =============================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 const MAX_PHOTOS = 5;
-const MAX_WIDTH = 1280;      // compress width
-const JPEG_QUALITY = 0.7;    // compress quality
+
+// smaller to avoid Apps Script payload limits
+const MAX_WIDTH = 1024;
+const JPEG_QUALITY = 0.6;
 
 /** ===============================
  * STATE
@@ -166,7 +168,7 @@ function handleFiles(files, source) {
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
-  // Quick EXIF check when using gallery
+  // Quick EXIF check for gallery
   if (photoSource === "gallery" && selectedFiles.length > 0) {
     quickExifTestUI();
   }
@@ -211,17 +213,42 @@ function updatePhotoUI() {
 }
 
 /** ===============================
- * EXIF GPS
+ * EXIF GPS (Robust + UI output)
  * =============================== */
 async function getGpsFromExif(file) {
   try {
-    const data = await exifr.parse(file, { gps: true });
-    if (data && data.latitude && data.longitude) {
-      return { lat: data.latitude, lng: data.longitude };
+    if (typeof exifr === "undefined") {
+      appendDebug("❌ exifr library NOT loaded");
+      return null;
     }
+
+    // Method 1: parse(gps)
+    try {
+      const data = await exifr.parse(file, { gps: true });
+      appendDebug("EXIF parse(gps) output: " + JSON.stringify(data));
+
+      if (data && data.latitude && data.longitude) {
+        return { lat: data.latitude, lng: data.longitude };
+      }
+    } catch (e1) {
+      appendDebug("EXIF parse(gps) failed: " + (e1?.message || String(e1)));
+    }
+
+    // Method 2: gps() direct
+    try {
+      const gps = await exifr.gps(file);
+      appendDebug("EXIF gps() output: " + JSON.stringify(gps));
+
+      if (gps && gps.latitude && gps.longitude) {
+        return { lat: gps.latitude, lng: gps.longitude };
+      }
+    } catch (e2) {
+      appendDebug("EXIF gps() failed: " + (e2?.message || String(e2)));
+    }
+
     return null;
   } catch (e) {
-    appendDebug("EXIF parse error: " + e.message);
+    appendDebug("EXIF unexpected error: " + (e?.message || String(e)));
     return null;
   }
 }
@@ -230,9 +257,9 @@ async function quickExifTestUI() {
   appendDebug("\n--- EXIF Quick Test ---");
 
   let found = null;
+
   for (const f of selectedFiles) {
     appendDebug("Checking EXIF GPS for: " + f.name);
-
     const gps = await getGpsFromExif(f);
     if (gps) {
       found = { fileName: f.name, ...gps };
@@ -311,11 +338,11 @@ function toBase64Compressed(file) {
         });
       };
 
-      img.onerror = reject;
+      img.onerror = () => reject(new Error("Image decode failed"));
       img.src = reader.result;
     };
 
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("File read failed"));
     reader.readAsDataURL(file);
   });
 }
@@ -386,7 +413,7 @@ async function submitData() {
       renderLocationBox(lat, lng, gpsSource);
 
     } catch (err) {
-      appendDebug("❌ Phone GPS failed: " + err.message);
+      appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
       status.innerText = "❌ Location failed";
       alert("Unable to fetch phone location. Please enable GPS.");
       return;
@@ -409,7 +436,7 @@ async function submitData() {
       appendDebug("Compressing: " + selectedFiles[i].name);
       const img = await toBase64Compressed(selectedFiles[i]);
       images.push(img);
-      appendDebug("Done: " + img.fileName);
+      appendDebug("Done: " + img.fileName + " | base64 size: " + img.base64.length);
     }
 
     const payload = {
@@ -421,20 +448,44 @@ async function submitData() {
       images
     };
 
-    const payloadSize = JSON.stringify(payload).length;
+    const payloadStr = JSON.stringify(payload);
     appendDebug("\n--- Upload ---");
-    appendDebug("Payload size (chars): " + payloadSize);
+    appendDebug("Payload size (chars): " + payloadStr.length);
+    appendDebug("Sending to: " + WEB_APP_URL);
 
     status.innerText = "☁️ Uploading...";
 
-    const response = await fetch(WEB_APP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
+    // fetch with full error reporting
+    let response;
+    try {
+      response = await fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: payloadStr
+      });
+    } catch (fetchErr) {
+      appendDebug("❌ Fetch failed (network): " + (fetchErr?.message || String(fetchErr)));
+      status.innerText = "❌ Upload failed";
+      alert("Network upload failed.");
+      return;
+    }
 
-    const respText = await response.text();
-    appendDebug("Server response: " + respText);
+    appendDebug("HTTP Status: " + response.status);
+
+    let respText = "";
+    try {
+      respText = await response.text();
+    } catch confirmErr {
+      appendDebug("❌ Response text read failed: " + (confirmErr?.message || String(confirmErr)));
+    }
+
+    appendDebug("Response body: " + respText);
+
+    if (!response.ok) {
+      status.innerText = "❌ Upload failed";
+      alert("Upload failed - server returned " + response.status);
+      return;
+    }
 
     status.innerText = "✅ Submitted successfully";
 
@@ -451,7 +502,7 @@ async function submitData() {
     document.getElementById("galleryInput").value = "";
 
   } catch (err) {
-    appendDebug("❌ Upload failed: " + err.message);
+    appendDebug("❌ Upload process failed: " + (err?.message || String(err)));
     status.innerText = "❌ Upload failed";
     alert("Upload failed. Please try again.");
   }
