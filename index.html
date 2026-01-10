@@ -1,17 +1,14 @@
 <!DOCTYPE html>
-
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clinic Capture</title>
 </head>
 
-
 <body style="font-family: Arial; text-align: center; padding: 20px;">
   <h2>Clinic Capture</h2>
-  <input type="text"
-         id="clinicName"
-         placeholder="Clinic name"
+
+  <input type="text" id="clinicName" placeholder="Clinic name"
          style="font-size:18px; padding:12px; width:100%; max-width:320px;">
   <br><br>
 
@@ -21,79 +18,96 @@
     <option value="Skin">Skin</option>
     <option value="Other">Other</option>
   </select>
-
   <br><br>
 
   <select id="clinicSize"
           style="font-size:18px; padding:12px; width:100%; max-width:320px;">
-       	<option value="Medium">Medium</option>
-        <option value="Large">Large</option>
-    	<option value="Small">Small</option>
-
+    <option value="Medium">Medium</option>
+      <option value="Large">Large</option>
+    <option value="Small">Small</option>
   </select>
-
   <br><br>
 
-<input type="file"
-       accept="image/*"
-       capture="environment"
-       id="photos"
-       multiple
-       style="font-size:18px;">
-
+  <input type="file" id="photos" accept="image/*" capture="environment" multiple
+         style="font-size:18px;">
   <br><br>
 
-  <button onclick="submitData()"
-          style="font-size:20px; padding:15px 30px;">
+  <button onclick="submitData()" style="font-size:20px; padding:15px 30px;">
     Submit
   </button>
 
-
-  <p id="status"></p>
+  <p id="status" style="margin-top:12px;"></p>
 
 <script>
-
 async function submitData() {
-  const photo = document.getElementById('photo').files[0];
-  const clinicType = document.getElementById('clinicType').value;
-  const clinicName = document.getElementById('clinicName').value;
-  const clinicSize = document.getElementById('clinicSize').value;
   const status = document.getElementById('status');
+  status.innerText = "Submit clicked ✅";
 
-  if (!photo || !clinicName) {
-    alert("Enter clinic name and take a photo");
-    return;
-  }
+  const clinicName = document.getElementById('clinicName').value.trim();
+  const clinicType = document.getElementById('clinicType').value;
+  const clinicSize = document.getElementById('clinicSize').value;
+  const photos = document.getElementById('photos').files;
+
+  if (!clinicName) return alert("Enter clinic name");
+  if (!photos || photos.length === 0) return alert("Take at least 1 photo");
+  if (photos.length > 5) return alert("Max 5 photos per clinic");
 
   status.innerText = "Getting location...";
-  navigator.geolocation.getCurrentPosition(position => {
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Image = reader.result.split(',')[1];
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    try {
+      status.innerText = "Preparing images...";
+
+      const images = await Promise.all([...photos].map(file => toBase64(file)));
+
       const payload = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        image: base64Image,
         clinicType,
         clinicName,
-        clinicSize
+        clinicSize,
+        images
       };
 
+      status.innerText = "Uploading...";
 
-      await fetch("https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec", {
+      const response = await fetch("https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec", {
         method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
 
-      status.innerText = "Submitted ✅";
-      document.getElementById('photo').value = "";
-      document.getElementById('clinicName').value = "";
-    };
+      const txt = await response.text();
+      console.log("Apps Script response:", txt);
 
-    reader.readAsDataURL(photo);
-  }, () => alert("Location permission denied"));
+      status.innerText = "Submitted ✅";
+      document.getElementById('clinicName').value = "";
+      document.getElementById('photos').value = "";
+
+    } catch (e) {
+      console.error(e);
+      status.innerText = "";
+      alert("Upload failed - check console");
+    }
+  }, (err) => {
+    console.error("Location error:", err);
+    status.innerText = "";
+    alert("Location permission denied/unavailable");
+  });
 }
 
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({
+      base64: reader.result.split(',')[1],
+      fileName: file.name,
+      mimeType: file.type
+    });
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 </script>
 </body>
 </html>
