@@ -100,7 +100,7 @@
     <div id="debugText" style="white-space:pre-wrap; margin-top:6px;"></div>
   </div>
 
-  <!-- EXIF library (FULL build) -->
+  <!-- EXIF library -->
   <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
 
 <script>
@@ -110,7 +110,7 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 const MAX_PHOTOS = 5;
 
-// smaller to avoid Apps Script payload limits
+// Smaller = more reliable upload to Apps Script
 const MAX_WIDTH = 1024;
 const JPEG_QUALITY = 0.6;
 
@@ -121,7 +121,7 @@ let selectedFiles = [];
 let photoSource = null;
 
 /** ===============================
- * DEBUG PANEL HELPERS
+ * DEBUG PANEL
  * =============================== */
 function setDebug(msg) {
   document.getElementById("debugText").innerText = msg || "";
@@ -153,7 +153,7 @@ function handleFiles(files, source) {
   const newFiles = [...files];
   appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
 
-  // append (do not replace)
+  // append instead of replace
   selectedFiles = selectedFiles.concat(newFiles);
 
   if (selectedFiles.length > MAX_PHOTOS) {
@@ -164,11 +164,11 @@ function handleFiles(files, source) {
 
   updatePhotoUI();
 
-  // Reset input values so repeated selection triggers onchange again
+  // Reset picker values to allow selecting again
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
-  // Quick EXIF check for gallery
+  // Quick EXIF check for Gallery
   if (photoSource === "gallery" && selectedFiles.length > 0) {
     quickExifTestUI();
   }
@@ -177,7 +177,7 @@ function handleFiles(files, source) {
 function removePhoto(index) {
   selectedFiles.splice(index, 1);
   updatePhotoUI();
-  appendDebug("Removed file at index: " + index);
+  appendDebug("Removed file index: " + index);
 }
 
 function updatePhotoUI() {
@@ -213,7 +213,7 @@ function updatePhotoUI() {
 }
 
 /** ===============================
- * EXIF GPS (Robust + UI output)
+ * EXIF GPS (Robust)
  * =============================== */
 async function getGpsFromExif(file) {
   try {
@@ -222,26 +222,20 @@ async function getGpsFromExif(file) {
       return null;
     }
 
-    // Method 1: parse(gps)
+    // Method 1
     try {
       const data = await exifr.parse(file, { gps: true });
-      appendDebug("EXIF parse(gps) output: " + JSON.stringify(data));
-
-      if (data && data.latitude && data.longitude) {
-        return { lat: data.latitude, lng: data.longitude };
-      }
+      appendDebug("EXIF parse(gps): " + JSON.stringify(data));
+      if (data && data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
     } catch (e1) {
       appendDebug("EXIF parse(gps) failed: " + (e1?.message || String(e1)));
     }
 
-    // Method 2: gps() direct
+    // Method 2
     try {
       const gps = await exifr.gps(file);
-      appendDebug("EXIF gps() output: " + JSON.stringify(gps));
-
-      if (gps && gps.latitude && gps.longitude) {
-        return { lat: gps.latitude, lng: gps.longitude };
-      }
+      appendDebug("EXIF gps(): " + JSON.stringify(gps));
+      if (gps && gps.latitude && gps.longitude) return { lat: gps.latitude, lng: gps.longitude };
     } catch (e2) {
       appendDebug("EXIF gps() failed: " + (e2?.message || String(e2)));
     }
@@ -292,7 +286,7 @@ function getDeviceGps() {
 }
 
 /** ===============================
- * UI LOCATION BOX
+ * LOCATION UI
  * =============================== */
 function renderLocationBox(lat, lng, sourceLabel) {
   const locationBox = document.getElementById("locationBox");
@@ -310,41 +304,33 @@ function renderLocationBox(lat, lng, sourceLabel) {
 }
 
 /** ===============================
- * IMAGE COMPRESSION + BASE64
+ * IMAGE COMPRESS (Reliable: arrayBuffer + createImageBitmap)
  * =============================== */
-function toBase64Compressed(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
+async function toBase64Compressed(file) {
+  // file read without FileReader (more reliable)
+  const buffer = await file.arrayBuffer();
+  const blob = new Blob([buffer], { type: file.type || "image/jpeg" });
 
-    reader.onload = () => {
-      img.onload = () => {
-        const scale = Math.min(1, MAX_WIDTH / img.width);
+  // decode image
+  const imgBitmap = await createImageBitmap(blob);
 
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
+  const scale = Math.min(1, MAX_WIDTH / imgBitmap.width);
 
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(imgBitmap.width * scale);
+  canvas.height = Math.round(imgBitmap.height * scale);
 
-        const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
-        const base64 = dataUrl.split(",")[1];
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(imgBitmap, 0, 0, canvas.width, canvas.height);
 
-        resolve({
-          base64,
-          fileName: file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
-          mimeType: "image/jpeg"
-        });
-      };
+  const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+  const base64 = dataUrl.split(",")[1];
 
-      img.onerror = () => reject(new Error("Image decode failed"));
-      img.src = reader.result;
-    };
-
-    reader.onerror = () => reject(new Error("File read failed"));
-    reader.readAsDataURL(file);
-  });
+  return {
+    base64,
+    fileName: file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
+    mimeType: "image/jpeg"
+  };
 }
 
 /** ===============================
@@ -358,14 +344,8 @@ async function submitData() {
   const clinicType = document.getElementById("clinicType").value;
   const clinicSize = document.getElementById("clinicSize").value;
 
-  if (!clinicName) {
-    alert("Enter clinic name");
-    return;
-  }
-  if (!selectedFiles || selectedFiles.length === 0) {
-    alert("Please take or select at least 1 photo");
-    return;
-  }
+  if (!clinicName) return alert("Enter clinic name");
+  if (!selectedFiles || selectedFiles.length === 0) return alert("Select at least 1 photo");
 
   appendDebug("\n--- Submit ---");
   appendDebug("Clinic: " + clinicName);
@@ -377,7 +357,7 @@ async function submitData() {
 
   let lat = null, lng = null, gpsSource = null;
 
-  // 1) Gallery => try EXIF GPS first
+  // EXIF first for gallery uploads
   if (photoSource === "gallery") {
     status.innerText = "📍 Reading photo GPS (EXIF)...";
     appendDebug("Reading EXIF GPS...");
@@ -392,49 +372,48 @@ async function submitData() {
       lat = exifGps.lat;
       lng = exifGps.lng;
       gpsSource = "Photo EXIF (taken location)";
-      appendDebug("✅ Using EXIF GPS: " + lat + ", " + lng);
       renderLocationBox(lat, lng, gpsSource);
+      appendDebug("✅ Using EXIF GPS: " + lat + ", " + lng);
     } else {
       appendDebug("⚠️ EXIF GPS missing. Fallback to Phone GPS.");
     }
   }
 
-  // 2) fallback to phone gps
+  // fallback GPS
   if (lat === null || lng === null) {
     try {
       status.innerText = "📍 Fetching phone GPS...";
-      appendDebug("Fetching phone GPS...");
-
       const deviceGps = await getDeviceGps();
       lat = deviceGps.lat;
       lng = deviceGps.lng;
       gpsSource = "Phone GPS (upload location)";
-      appendDebug("✅ Using Phone GPS: " + lat + ", " + lng);
       renderLocationBox(lat, lng, gpsSource);
-
+      appendDebug("✅ Using Phone GPS: " + lat + ", " + lng);
     } catch (err) {
       appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
       status.innerText = "❌ Location failed";
-      alert("Unable to fetch phone location. Please enable GPS.");
-      return;
+      return alert("Phone GPS failed. Enable location.");
     }
   }
 
-  appendDebug("\n--- GPS Used ---");
-  appendDebug("GPS Source: " + gpsSource);
-  appendDebug("Lat: " + lat);
-  appendDebug("Lng: " + lng);
-
-  // Convert and compress photos
+  // compress & upload
   try {
     status.innerText = "🖼️ Preparing images...";
     appendDebug("\n--- Image Preparation ---");
-    appendDebug("Compressing images...");
 
     const images = [];
-    for (let i = 0; i < selectedFiles.length; i++) {
-      appendDebug("Compressing: " + selectedFiles[i].name);
-      const img = await toBase64Compressed(selectedFiles[i]);
+    for (const f of selectedFiles) {
+      appendDebug("Compressing: " + f.name);
+
+      let img;
+      try {
+        img = await toBase64Compressed(f);
+      } catch (e) {
+        appendDebug("❌ Failed to read/compress: " + f.name);
+        appendDebug("Reason: " + (e?.message || String(e)));
+        throw e;
+      }
+
       images.push(img);
       appendDebug("Done: " + img.fileName + " | base64 size: " + img.base64.length);
     }
@@ -449,13 +428,13 @@ async function submitData() {
     };
 
     const payloadStr = JSON.stringify(payload);
+
     appendDebug("\n--- Upload ---");
     appendDebug("Payload size (chars): " + payloadStr.length);
     appendDebug("Sending to: " + WEB_APP_URL);
 
     status.innerText = "☁️ Uploading...";
 
-    // fetch with full error reporting
     let response;
     try {
       response = await fetch(WEB_APP_URL, {
@@ -466,8 +445,7 @@ async function submitData() {
     } catch (fetchErr) {
       appendDebug("❌ Fetch failed (network): " + (fetchErr?.message || String(fetchErr)));
       status.innerText = "❌ Upload failed";
-      alert("Network upload failed.");
-      return;
+      return alert("Network upload failed.");
     }
 
     appendDebug("HTTP Status: " + response.status);
@@ -475,31 +453,26 @@ async function submitData() {
     let respText = "";
     try {
       respText = await response.text();
-    } catch (confirmErr) {
-      appendDebug("❌ Response text read failed: " + (confirmErr?.message || String(confirmErr)));
+    } catch (readErr) {
+      appendDebug("❌ Response text read failed: " + (readErr?.message || String(readErr)));
     }
 
     appendDebug("Response body: " + respText);
 
     if (!response.ok) {
       status.innerText = "❌ Upload failed";
-      alert("Upload failed - server returned " + response.status);
-      return;
+      return alert("Upload failed (HTTP " + response.status + ")");
     }
 
     status.innerText = "✅ Submitted successfully";
 
-    // Reset everything
+    // reset
     document.getElementById("clinicName").value = "";
     document.getElementById("photoInfo").innerText = "";
     document.getElementById("photoList").innerHTML = "";
     locationBox.innerHTML = "";
-
     selectedFiles = [];
     photoSource = null;
-
-    document.getElementById("cameraInput").value = "";
-    document.getElementById("galleryInput").value = "";
 
   } catch (err) {
     appendDebug("❌ Upload process failed: " + (err?.message || String(err)));
