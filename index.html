@@ -28,8 +28,38 @@
   </select>
   <br><br>
 
-  <input type="file" accept="image/*" id="photos" multiple>
-         style="font-size:18px;">
+<!-- Photo selection mode buttons -->
+<div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
+  <button type="button" onclick="openCamera()"
+          style="font-size:18px; padding:12px 18px;">
+    📸 Take Photos
+  </button>
+
+  <button type="button" onclick="openGallery()"
+          style="font-size:18px; padding:12px 18px;">
+    🖼️ Upload from Gallery
+  </button>
+</div>
+
+<p id="photoInfo" style="margin: 0 0 10px 0; font-size:16px;"></p>
+
+<!-- Hidden camera input -->
+<input type="file"
+       id="cameraInput"
+       accept="image/*"
+       capture="environment"
+       multiple
+       style="display:none;"
+       onchange="handleFiles(this.files)">
+
+<!-- Hidden gallery input -->
+<input type="file"
+       id="galleryInput"
+       accept="image/*"
+       multiple
+       style="display:none;"
+       onchange="handleFiles(this.files)">
+
   <br><br>
 
   <button onclick="submitData()" style="font-size:20px; padding:15px 30px;">
