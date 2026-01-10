@@ -110,14 +110,16 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 const MAX_PHOTOS = 5;
 
-// Smaller = more reliable upload to Apps Script
+// Smaller = more reliable upload
 const MAX_WIDTH = 1024;
 const JPEG_QUALITY = 0.6;
 
 /** ===============================
  * STATE
  * =============================== */
-let selectedFiles = [];
+// Instead of storing File objects (permission may be revoked),
+// we store stable in-memory copies.
+let selectedItems = []; // { name, type, buffer (ArrayBuffer) }
 let photoSource = null;
 
 /** ===============================
@@ -142,9 +144,10 @@ function openGallery() {
 }
 
 /** ===============================
- * FILE HANDLING
+ * FILE HANDLING (IMPORTANT FIX)
+ * Read files immediately and store ArrayBuffer
  * =============================== */
-function handleFiles(files, source) {
+async function handleFiles(files, source) {
   photoSource = source;
 
   setDebug("");
@@ -153,51 +156,66 @@ function handleFiles(files, source) {
   const newFiles = [...files];
   appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
 
-  // append instead of replace
-  selectedFiles = selectedFiles.concat(newFiles);
-
-  if (selectedFiles.length > MAX_PHOTOS) {
-    selectedFiles = selectedFiles.slice(0, MAX_PHOTOS);
-    appendDebug("⚠️ Max photos reached: " + MAX_PHOTOS);
-    alert("Max " + MAX_PHOTOS + " photos per clinic");
-  }
-
-  updatePhotoUI();
-
   // Reset picker values to allow selecting again
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
-  // Quick EXIF check for Gallery
-  if (photoSource === "gallery" && selectedFiles.length > 0) {
-    quickExifTestUI();
+  // Add files until max
+  for (const f of newFiles) {
+    if (selectedItems.length >= MAX_PHOTOS) {
+      appendDebug("⚠️ Max photos reached: " + MAX_PHOTOS);
+      alert("Max " + MAX_PHOTOS + " photos per clinic");
+      break;
+    }
+
+    try {
+      appendDebug("Reading file into memory: " + f.name);
+      const buffer = await f.arrayBuffer();  // <-- KEY FIX
+      selectedItems.push({
+        name: f.name,
+        type: f.type || "image/jpeg",
+        buffer
+      });
+      appendDebug("✅ Stored in memory: " + f.name + " (" + buffer.byteLength + " bytes)");
+    } catch (err) {
+      appendDebug("❌ Failed reading file: " + f.name);
+      appendDebug("Reason: " + (err?.message || String(err)));
+      alert("Cannot read selected file: " + f.name);
+    }
+  }
+
+  updatePhotoUI();
+
+  // Quick EXIF test for Gallery
+  if (photoSource === "gallery" && selectedItems.length > 0) {
+    await quickExifTestUI();
   }
 }
 
 function removePhoto(index) {
-  selectedFiles.splice(index, 1);
+  selectedItems.splice(index, 1);
   updatePhotoUI();
-  appendDebug("Removed file index: " + index);
+  appendDebug("Removed photo index: " + index);
 }
 
 function updatePhotoUI() {
   const info = document.getElementById("photoInfo");
   const list = document.getElementById("photoList");
 
-  if (!selectedFiles || selectedFiles.length === 0) {
+  if (!selectedItems || selectedItems.length === 0) {
     info.innerText = "";
     list.innerHTML = "";
     return;
   }
 
-  info.innerText = `✅ ${selectedFiles.length} photo(s) selected`;
+  info.innerText = `✅ ${selectedItems.length} photo(s) selected`;
 
   list.innerHTML = `
     <div style="font-weight:bold; margin-bottom:6px;">Selected photos:</div>
     <ul style="margin:0; padding-left:18px;">
-      ${selectedFiles.map((f, idx) => `
+      ${selectedItems.map((it, idx) => `
         <li style="margin-bottom:6px; display:flex; align-items:center; gap:10px;">
-          <span style="flex:1; word-break:break-word;">${escapeHtml(f.name)}</span>
+          <span style="flex:1; word-break:break-word;">${escapeHtml(it.name)}</span>
           <button type="button"
                   onclick="removePhoto(${idx})"
                   style="font-size:12px; padding:6px 10px;">
@@ -213,18 +231,24 @@ function updatePhotoUI() {
 }
 
 /** ===============================
- * EXIF GPS (Robust)
+ * EXIF GPS (operate on Blob from buffer)
  * =============================== */
-async function getGpsFromExif(file) {
+function itemToBlob(item) {
+  return new Blob([item.buffer], { type: item.type || "image/jpeg" });
+}
+
+async function getGpsFromExifItem(item) {
   try {
     if (typeof exifr === "undefined") {
       appendDebug("❌ exifr library NOT loaded");
       return null;
     }
 
+    const blob = itemToBlob(item);
+
     // Method 1
     try {
-      const data = await exifr.parse(file, { gps: true });
+      const data = await exifr.parse(blob, { gps: true });
       appendDebug("EXIF parse(gps): " + JSON.stringify(data));
       if (data && data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
     } catch (e1) {
@@ -233,7 +257,7 @@ async function getGpsFromExif(file) {
 
     // Method 2
     try {
-      const gps = await exifr.gps(file);
+      const gps = await exifr.gps(blob);
       appendDebug("EXIF gps(): " + JSON.stringify(gps));
       if (gps && gps.latitude && gps.longitude) return { lat: gps.latitude, lng: gps.longitude };
     } catch (e2) {
@@ -252,11 +276,11 @@ async function quickExifTestUI() {
 
   let found = null;
 
-  for (const f of selectedFiles) {
-    appendDebug("Checking EXIF GPS for: " + f.name);
-    const gps = await getGpsFromExif(f);
+  for (const it of selectedItems) {
+    appendDebug("Checking EXIF GPS for: " + it.name);
+    const gps = await getGpsFromExifItem(it);
     if (gps) {
-      found = { fileName: f.name, ...gps };
+      found = { fileName: it.name, ...gps };
       break;
     }
   }
@@ -304,14 +328,12 @@ function renderLocationBox(lat, lng, sourceLabel) {
 }
 
 /** ===============================
- * IMAGE COMPRESS (Reliable: arrayBuffer + createImageBitmap)
+ * IMAGE COMPRESS (operate on Blob from buffer)
  * =============================== */
-async function toBase64Compressed(file) {
-  // file read without FileReader (more reliable)
-  const buffer = await file.arrayBuffer();
-  const blob = new Blob([buffer], { type: file.type || "image/jpeg" });
+async function itemToBase64Compressed(item) {
+  const blob = itemToBlob(item);
 
-  // decode image
+  // decode image from memory
   const imgBitmap = await createImageBitmap(blob);
 
   const scale = Math.min(1, MAX_WIDTH / imgBitmap.width);
@@ -328,7 +350,7 @@ async function toBase64Compressed(file) {
 
   return {
     base64,
-    fileName: file.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
+    fileName: item.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg",
     mimeType: "image/jpeg"
   };
 }
@@ -345,12 +367,12 @@ async function submitData() {
   const clinicSize = document.getElementById("clinicSize").value;
 
   if (!clinicName) return alert("Enter clinic name");
-  if (!selectedFiles || selectedFiles.length === 0) return alert("Select at least 1 photo");
+  if (!selectedItems || selectedItems.length === 0) return alert("Select at least 1 photo");
 
   appendDebug("\n--- Submit ---");
   appendDebug("Clinic: " + clinicName);
   appendDebug("Type: " + clinicType + ", Size: " + clinicSize);
-  appendDebug("Files count: " + selectedFiles.length);
+  appendDebug("Items count: " + selectedItems.length);
 
   status.innerText = "📍 Fetching location...";
   locationBox.innerHTML = "";
@@ -363,8 +385,8 @@ async function submitData() {
     appendDebug("Reading EXIF GPS...");
 
     let exifGps = null;
-    for (const f of selectedFiles) {
-      exifGps = await getGpsFromExif(f);
+    for (const it of selectedItems) {
+      exifGps = await getGpsFromExifItem(it);
       if (exifGps) break;
     }
 
@@ -402,14 +424,14 @@ async function submitData() {
     appendDebug("\n--- Image Preparation ---");
 
     const images = [];
-    for (const f of selectedFiles) {
-      appendDebug("Compressing: " + f.name);
+    for (const it of selectedItems) {
+      appendDebug("Compressing: " + it.name);
 
       let img;
       try {
-        img = await toBase64Compressed(f);
+        img = await itemToBase64Compressed(it);
       } catch (e) {
-        appendDebug("❌ Failed to read/compress: " + f.name);
+        appendDebug("❌ Failed to compress: " + it.name);
         appendDebug("Reason: " + (e?.message || String(e)));
         throw e;
       }
@@ -471,7 +493,8 @@ async function submitData() {
     document.getElementById("photoInfo").innerText = "";
     document.getElementById("photoList").innerHTML = "";
     locationBox.innerHTML = "";
-    selectedFiles = [];
+
+    selectedItems = [];
     photoSource = null;
 
   } catch (err) {
