@@ -131,7 +131,59 @@ function handleFiles(files, source) {
 
   // ✅ Quick confirmation test: try reading EXIF GPS immediately for gallery
   if (photoSource === "gallery" && selectedFiles.length > 0) {
-    quickExifTest();
+    async function quickExifTest() {
+  try {
+    const file = selectedFiles[0];
+    if (!file) return;
+
+    // Parse ALL metadata (not only gps)
+    const all = await exifr.parse(file);
+
+    // Parse GPS specifically
+    const gps = await exifr.parse(file, { gps: true });
+
+    console.log("FULL EXIF:", all);
+    console.log("GPS EXIF:", gps);
+
+    let msg = `📷 File: ${file.name}\n\n`;
+
+    if (gps && gps.latitude && gps.longitude) {
+      msg += `✅ Standard EXIF GPS found!\nLat: ${gps.latitude}\nLng: ${gps.longitude}`;
+      alert(msg);
+      return;
+    }
+
+    msg += "⚠️ Standard EXIF GPS not found.\n\n";
+
+    // Show what *location-related* fields exist
+    const possibleFields = [
+      "latitude", "longitude", "GPSLatitude", "GPSLongitude",
+      "GPSLatitudeRef", "GPSLongitudeRef",
+      "location", "subjectLocation",
+      "UserComment", "ImageDescription"
+    ];
+
+    msg += "Location-related fields detected:\n";
+    let foundAny = false;
+
+    for (const k of possibleFields) {
+      if (all && all[k] != null) {
+        foundAny = true;
+        msg += `- ${k}: ${JSON.stringify(all[k])}\n`;
+      }
+    }
+
+    if (!foundAny) {
+      msg += "(none)\n";
+    }
+
+    alert(msg + "\n✅ Check Console logs for FULL EXIF output.");
+  } catch (err) {
+    console.error(err);
+    alert("❌ EXIF Test Failed. Check console.");
+  }
+}
+
   }
 }
 
