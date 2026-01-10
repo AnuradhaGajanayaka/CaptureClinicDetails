@@ -1,197 +1,99 @@
 <!DOCTYPE html>
 
 <html>
-
 <head>
-
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <title>Clinic Capture</title>
-
 </head>
 
 
-
 <body style="font-family: Arial; text-align: center; padding: 20px;">
-
-
-
   <h2>Clinic Capture</h2>
-
-
-
   <input type="text"
-
          id="clinicName"
-
          placeholder="Clinic name"
-
          style="font-size:18px; padding:12px; width:100%; max-width:320px;">
-
-
-
   <br><br>
-
-
 
   <select id="clinicType"
-
           style="font-size:18px; padding:12px; width:100%; max-width:320px;">
-
     <option value="Dental">Dental</option>
-
     <option value="Skin">Skin</option>
-
     <option value="Other">Other</option>
-
   </select>
 
-
-
   <br><br>
-
-
 
   <select id="clinicSize"
-
           style="font-size:18px; padding:12px; width:100%; max-width:320px;">
-
-    <option value="Small">Small</option>
-
-    <option value="Medium">Medium</option>
-
-    <option value="Large">Large</option>
+       	<option value="Medium">Medium</option>
+        <option value="Large">Large</option>
+    	<option value="Small">Small</option>
 
   </select>
 
-
-
   <br><br>
 
-
-
-  <input type="file"
-
-         accept="image/*"
-
-         capture="environment"
-
-         id="photo"
-
-         style="font-size:18px;">
-
-
+<input type="file"
+       accept="image/*"
+       capture="environment"
+       id="photos"
+       multiple
+       style="font-size:18px;">
 
   <br><br>
-
-
 
   <button onclick="submitData()"
-
           style="font-size:20px; padding:15px 30px;">
-
     Submit
-
   </button>
-
 
 
   <p id="status"></p>
 
-
-
 <script>
 
 async function submitData() {
-
   const photo = document.getElementById('photo').files[0];
-
   const clinicType = document.getElementById('clinicType').value;
-
   const clinicName = document.getElementById('clinicName').value;
-
   const clinicSize = document.getElementById('clinicSize').value;
-
   const status = document.getElementById('status');
 
-
-
   if (!photo || !clinicName) {
-
     alert("Enter clinic name and take a photo");
-
     return;
-
   }
 
-
-
   status.innerText = "Getting location...";
-
-
-
   navigator.geolocation.getCurrentPosition(position => {
-
     const reader = new FileReader();
-
-
-
     reader.onloadend = async () => {
-
       const base64Image = reader.result.split(',')[1];
-
-
-
       const payload = {
-
         latitude: position.coords.latitude,
-
         longitude: position.coords.longitude,
-
         image: base64Image,
-
         clinicType,
-
         clinicName,
-
         clinicSize
-
       };
 
 
-
       await fetch("https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec", {
-
         method: "POST",
-
         body: JSON.stringify(payload)
-
       });
 
-
-
       status.innerText = "Submitted ✅";
-
       document.getElementById('photo').value = "";
-
       document.getElementById('clinicName').value = "";
-
     };
 
-
-
     reader.readAsDataURL(photo);
-
-
-
   }, () => alert("Location permission denied"));
-
 }
 
 </script>
-
-
-
 </body>
-
 </html>
