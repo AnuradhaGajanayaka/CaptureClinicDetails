@@ -92,16 +92,17 @@
        style="text-align:left; display:inline-block; width:100%; max-width:360px; font-size:14px; margin-top:12px;">
   </div>
 
-  <!-- EXIF library (tiny) -->
-  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+  <!-- EXIF library (FULL for reliability) -->
+  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
 
 <script>
-let selectedFiles = [];      // keeps all photos until submit
-let photoSource = null;      // 'camera' or 'gallery' depending on last selection
+let selectedFiles = [];
+let photoSource = null;
 
-// Apps Script URL (your saved URL)
+// Your Apps Script URL
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 
+/** ===== Buttons ===== **/
 function openCamera() {
   document.getElementById("cameraInput").click();
 }
@@ -110,7 +111,7 @@ function openGallery() {
   document.getElementById("galleryInput").click();
 }
 
-// Append photos instead of replacing
+/** ===== Photo Selection ===== **/
 function handleFiles(files, source) {
   photoSource = source;
 
@@ -124,9 +125,14 @@ function handleFiles(files, source) {
 
   updatePhotoUI();
 
-  // Reset inputs so selecting same source again works
+  // Reset inputs so selecting again triggers properly
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
+
+  // ✅ Quick confirmation test: try reading EXIF GPS immediately for gallery
+  if (photoSource === "gallery" && selectedFiles.length > 0) {
+    quickExifTest();
+  }
 }
 
 function removePhoto(index) {
@@ -166,22 +172,49 @@ function updatePhotoUI() {
   `;
 }
 
-// -------- GPS helpers --------
-
-// Try to extract GPS from EXIF of first image
+/** ===== EXIF GPS ===== **/
 async function getGpsFromExif(file) {
   try {
-    const gps = await exifr.gps(file); // { latitude, longitude } or null
-    if (gps && gps.latitude && gps.longitude) {
-      return { lat: gps.latitude, lng: gps.longitude };
+    const data = await exifr.parse(file, { gps: true });
+
+    if (data && data.latitude && data.longitude) {
+      return { lat: data.latitude, lng: data.longitude };
     }
     return null;
   } catch (e) {
+    console.error("EXIF parse failed:", e);
     return null;
   }
 }
 
-// Get current device GPS
+// ✅ Quick test alert
+async function quickExifTest() {
+  try {
+    let found = null;
+
+    // scan all photos until GPS found
+    for (const f of selectedFiles) {
+      const gps = await getGpsFromExif(f);
+      if (gps) {
+        found = { fileName: f.name, ...gps };
+        break;
+      }
+    }
+
+    console.log("EXIF GPS quick test:", found);
+
+    if (found) {
+      alert(`✅ EXIF GPS found!\nFile: ${found.fileName}\nLat: ${found.lat}\nLng: ${found.lng}`);
+    } else {
+      alert("⚠️ EXIF GPS NOT found in selected photos.\nApp will fallback to Phone GPS.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ EXIF Test Failed. Check console.");
+  }
+}
+
+/** ===== Phone GPS ===== **/
 function getDeviceGps() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
@@ -192,6 +225,7 @@ function getDeviceGps() {
   });
 }
 
+/** ===== UI helpers ===== **/
 function renderLocationBox(lat, lng, sourceLabel) {
   const locationBox = document.getElementById("locationBox");
   const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
@@ -207,6 +241,7 @@ function renderLocationBox(lat, lng, sourceLabel) {
   `;
 }
 
+/** ===== Submit ===== **/
 async function submitData() {
   const status = document.getElementById("status");
   const locationBox = document.getElementById("locationBox");
@@ -230,10 +265,17 @@ async function submitData() {
 
   let lat = null, lng = null, gpsSource = null;
 
-  // 1) If gallery mode -> try EXIF GPS first
+  // 1) If gallery -> EXIF GPS first
   if (photoSource === "gallery") {
     status.innerText = "📍 Reading photo GPS (EXIF)...";
-    const exifGps = await getGpsFromExif(selectedFiles[0]);
+
+    let exifGps = null;
+    for (const f of selectedFiles) {
+      exifGps = await getGpsFromExif(f);
+      if (exifGps) break;
+    }
+
+    console.log("EXIF GPS result used:", exifGps);
 
     if (exifGps) {
       lat = exifGps.lat;
@@ -245,7 +287,7 @@ async function submitData() {
     }
   }
 
-  // 2) If camera mode OR EXIF failed -> fallback to phone GPS
+  // 2) fallback to phone GPS
   if (lat === null || lng === null) {
     try {
       status.innerText = "📍 Fetching phone GPS...";
