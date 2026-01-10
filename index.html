@@ -92,104 +92,90 @@
        style="text-align:left; display:inline-block; width:100%; max-width:360px; font-size:14px; margin-top:12px;">
   </div>
 
-  <!-- EXIF library (FULL for reliability) -->
+  <!-- Debug Panel -->
+  <div id="debugBox"
+       style="text-align:left; display:inline-block; width:100%; max-width:360px;
+              font-size:13px; margin-top:12px; padding:10px; border:1px dashed #999; border-radius:8px;">
+    <b>Debug Panel</b>
+    <div id="debugText" style="white-space:pre-wrap; margin-top:6px;"></div>
+  </div>
+
+  <!-- EXIF library (FULL build) -->
   <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
 
 <script>
+/** ===============================
+ * CONFIG
+ * =============================== */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
+const MAX_PHOTOS = 5;
+const MAX_WIDTH = 1280;      // compress width
+const JPEG_QUALITY = 0.7;    // compress quality
+
+/** ===============================
+ * STATE
+ * =============================== */
 let selectedFiles = [];
 let photoSource = null;
 
-// Your Apps Script URL
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
+/** ===============================
+ * DEBUG PANEL HELPERS
+ * =============================== */
+function setDebug(msg) {
+  document.getElementById("debugText").innerText = msg || "";
+}
+function appendDebug(msg) {
+  const el = document.getElementById("debugText");
+  el.innerText = (el.innerText ? el.innerText + "\n" : "") + msg;
+}
 
-/** ===== Buttons ===== **/
+/** ===============================
+ * BUTTONS
+ * =============================== */
 function openCamera() {
   document.getElementById("cameraInput").click();
 }
-
 function openGallery() {
   document.getElementById("galleryInput").click();
 }
 
-/** ===== Photo Selection ===== **/
+/** ===============================
+ * FILE HANDLING
+ * =============================== */
 function handleFiles(files, source) {
   photoSource = source;
 
+  setDebug("");
+  appendDebug("Photo source: " + source.toUpperCase());
+
   const newFiles = [...files];
+  appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
+
+  // append (do not replace)
   selectedFiles = selectedFiles.concat(newFiles);
 
-  if (selectedFiles.length > 5) {
-    selectedFiles = selectedFiles.slice(0, 5);
-    alert("Max 5 photos per clinic");
+  if (selectedFiles.length > MAX_PHOTOS) {
+    selectedFiles = selectedFiles.slice(0, MAX_PHOTOS);
+    appendDebug("⚠️ Max photos reached: " + MAX_PHOTOS);
+    alert("Max " + MAX_PHOTOS + " photos per clinic");
   }
 
   updatePhotoUI();
 
-  // Reset inputs so selecting again triggers properly
+  // Reset input values so repeated selection triggers onchange again
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
-  // ✅ Quick confirmation test: try reading EXIF GPS immediately for gallery
+  // Quick EXIF check when using gallery
   if (photoSource === "gallery" && selectedFiles.length > 0) {
-    async function quickExifTest() {
-  try {
-    const file = selectedFiles[0];
-    if (!file) return;
-
-    // Parse ALL metadata (not only gps)
-    const all = await exifr.parse(file);
-
-    // Parse GPS specifically
-    const gps = await exifr.parse(file, { gps: true });
-
-    console.log("FULL EXIF:", all);
-    console.log("GPS EXIF:", gps);
-
-    let msg = `📷 File: ${file.name}\n\n`;
-
-    if (gps && gps.latitude && gps.longitude) {
-      msg += `✅ Standard EXIF GPS found!\nLat: ${gps.latitude}\nLng: ${gps.longitude}`;
-      alert(msg);
-      return;
-    }
-
-    msg += "⚠️ Standard EXIF GPS not found.\n\n";
-
-    // Show what *location-related* fields exist
-    const possibleFields = [
-      "latitude", "longitude", "GPSLatitude", "GPSLongitude",
-      "GPSLatitudeRef", "GPSLongitudeRef",
-      "location", "subjectLocation",
-      "UserComment", "ImageDescription"
-    ];
-
-    msg += "Location-related fields detected:\n";
-    let foundAny = false;
-
-    for (const k of possibleFields) {
-      if (all && all[k] != null) {
-        foundAny = true;
-        msg += `- ${k}: ${JSON.stringify(all[k])}\n`;
-      }
-    }
-
-    if (!foundAny) {
-      msg += "(none)\n";
-    }
-
-    alert(msg + "\n✅ Check Console logs for FULL EXIF output.");
-  } catch (err) {
-    console.error(err);
-    alert("❌ EXIF Test Failed. Check console.");
-  }
-}
-
+    quickExifTestUI();
   }
 }
 
 function removePhoto(index) {
   selectedFiles.splice(index, 1);
   updatePhotoUI();
+  appendDebug("Removed file at index: " + index);
 }
 
 function updatePhotoUI() {
@@ -224,49 +210,50 @@ function updatePhotoUI() {
   `;
 }
 
-/** ===== EXIF GPS ===== **/
+/** ===============================
+ * EXIF GPS
+ * =============================== */
 async function getGpsFromExif(file) {
   try {
     const data = await exifr.parse(file, { gps: true });
-
     if (data && data.latitude && data.longitude) {
       return { lat: data.latitude, lng: data.longitude };
     }
     return null;
   } catch (e) {
-    console.error("EXIF parse failed:", e);
+    appendDebug("EXIF parse error: " + e.message);
     return null;
   }
 }
 
-// ✅ Quick test alert
-async function quickExifTest() {
-  try {
-    let found = null;
+async function quickExifTestUI() {
+  appendDebug("\n--- EXIF Quick Test ---");
 
-    // scan all photos until GPS found
-    for (const f of selectedFiles) {
-      const gps = await getGpsFromExif(f);
-      if (gps) {
-        found = { fileName: f.name, ...gps };
-        break;
-      }
+  let found = null;
+  for (const f of selectedFiles) {
+    appendDebug("Checking EXIF GPS for: " + f.name);
+
+    const gps = await getGpsFromExif(f);
+    if (gps) {
+      found = { fileName: f.name, ...gps };
+      break;
     }
+  }
 
-    console.log("EXIF GPS quick test:", found);
-
-    if (found) {
-      alert(`✅ EXIF GPS found!\nFile: ${found.fileName}\nLat: ${found.lat}\nLng: ${found.lng}`);
-    } else {
-      alert("⚠️ EXIF GPS NOT found in selected photos.\nApp will fallback to Phone GPS.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("❌ EXIF Test Failed. Check console.");
+  if (found) {
+    appendDebug("✅ EXIF GPS FOUND");
+    appendDebug("File: " + found.fileName);
+    appendDebug("Lat: " + found.lat);
+    appendDebug("Lng: " + found.lng);
+  } else {
+    appendDebug("⚠️ EXIF GPS NOT found in selected photos.");
+    appendDebug("App will fallback to Phone GPS.");
   }
 }
 
-/** ===== Phone GPS ===== **/
+/** ===============================
+ * PHONE GPS
+ * =============================== */
 function getDeviceGps() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
@@ -277,7 +264,9 @@ function getDeviceGps() {
   });
 }
 
-/** ===== UI helpers ===== **/
+/** ===============================
+ * UI LOCATION BOX
+ * =============================== */
 function renderLocationBox(lat, lng, sourceLabel) {
   const locationBox = document.getElementById("locationBox");
   const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
@@ -293,123 +282,17 @@ function renderLocationBox(lat, lng, sourceLabel) {
   `;
 }
 
-/** ===== Submit ===== **/
-async function submitData() {
-  const status = document.getElementById("status");
-  const locationBox = document.getElementById("locationBox");
-
-  const clinicName = document.getElementById("clinicName").value.trim();
-  const clinicType = document.getElementById("clinicType").value;
-  const clinicSize = document.getElementById("clinicSize").value;
-
-  if (!clinicName) {
-    alert("Enter clinic name");
-    return;
-  }
-
-  if (!selectedFiles || selectedFiles.length === 0) {
-    alert("Please take or select at least 1 photo");
-    return;
-  }
-
-  status.innerText = "📍 Fetching location...";
-  locationBox.innerHTML = "";
-
-  let lat = null, lng = null, gpsSource = null;
-
-  // 1) If gallery -> EXIF GPS first
-  if (photoSource === "gallery") {
-    status.innerText = "📍 Reading photo GPS (EXIF)...";
-
-    let exifGps = null;
-    for (const f of selectedFiles) {
-      exifGps = await getGpsFromExif(f);
-      if (exifGps) break;
-    }
-
-    console.log("EXIF GPS result used:", exifGps);
-
-    if (exifGps) {
-      lat = exifGps.lat;
-      lng = exifGps.lng;
-      gpsSource = "Photo EXIF (taken location)";
-      renderLocationBox(lat, lng, gpsSource);
-    } else {
-      status.innerText = "📍 Photo has no GPS. Using phone GPS...";
-    }
-  }
-
-  // 2) fallback to phone GPS
-  if (lat === null || lng === null) {
-    try {
-      status.innerText = "📍 Fetching phone GPS...";
-      const deviceGps = await getDeviceGps();
-      lat = deviceGps.lat;
-      lng = deviceGps.lng;
-      gpsSource = "Phone GPS (upload location)";
-      renderLocationBox(lat, lng, gpsSource);
-    } catch (err) {
-      console.error(err);
-      status.innerText = "❌ Location failed";
-      alert("Unable to fetch phone location. Please enable GPS.");
-      return;
-    }
-  }
-
-  // Convert photos
-  try {
-    status.innerText = "🖼️ Preparing images...";
-    const images = await Promise.all(selectedFiles.map(file => toBase64(file)));
-
-    const payload = {
-      latitude: lat,
-      longitude: lng,
-      clinicName,
-      clinicType,
-      clinicSize,
-      images
-    };
-
-    status.innerText = "☁️ Uploading...";
-
-    const response = await fetch(WEB_APP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    console.log("Apps Script response:", await response.text());
-
-    status.innerText = "✅ Submitted successfully";
-
-    // Reset everything
-    document.getElementById("clinicName").value = "";
-    document.getElementById("photoInfo").innerText = "";
-    document.getElementById("photoList").innerHTML = "";
-    locationBox.innerHTML = "";
-
-    selectedFiles = [];
-    photoSource = null;
-
-    document.getElementById("cameraInput").value = "";
-    document.getElementById("galleryInput").value = "";
-
-  } catch (err) {
-    console.error(err);
-    status.innerText = "❌ Upload failed";
-    alert("Upload failed. Try again.");
-  }
-}
-
-function toBase64(file) {
+/** ===============================
+ * IMAGE COMPRESSION + BASE64
+ * =============================== */
+function toBase64Compressed(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();
 
     reader.onload = () => {
       img.onload = () => {
-        const MAX_W = 1280;  // you can change to 1024 for even smaller
-        const scale = Math.min(1, MAX_W / img.width);
+        const scale = Math.min(1, MAX_WIDTH / img.width);
 
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(img.width * scale);
@@ -418,9 +301,7 @@ function toBase64(file) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // compress to jpg
-        const jpegQuality = 0.7;
-        const dataUrl = canvas.toDataURL("image/jpeg", jpegQuality);
+        const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
         const base64 = dataUrl.split(",")[1];
 
         resolve({
@@ -439,7 +320,146 @@ function toBase64(file) {
   });
 }
 
+/** ===============================
+ * SUBMIT
+ * =============================== */
+async function submitData() {
+  const status = document.getElementById("status");
+  const locationBox = document.getElementById("locationBox");
 
+  const clinicName = document.getElementById("clinicName").value.trim();
+  const clinicType = document.getElementById("clinicType").value;
+  const clinicSize = document.getElementById("clinicSize").value;
+
+  if (!clinicName) {
+    alert("Enter clinic name");
+    return;
+  }
+  if (!selectedFiles || selectedFiles.length === 0) {
+    alert("Please take or select at least 1 photo");
+    return;
+  }
+
+  appendDebug("\n--- Submit ---");
+  appendDebug("Clinic: " + clinicName);
+  appendDebug("Type: " + clinicType + ", Size: " + clinicSize);
+  appendDebug("Files count: " + selectedFiles.length);
+
+  status.innerText = "📍 Fetching location...";
+  locationBox.innerHTML = "";
+
+  let lat = null, lng = null, gpsSource = null;
+
+  // 1) Gallery => try EXIF GPS first
+  if (photoSource === "gallery") {
+    status.innerText = "📍 Reading photo GPS (EXIF)...";
+    appendDebug("Reading EXIF GPS...");
+
+    let exifGps = null;
+    for (const f of selectedFiles) {
+      exifGps = await getGpsFromExif(f);
+      if (exifGps) break;
+    }
+
+    if (exifGps) {
+      lat = exifGps.lat;
+      lng = exifGps.lng;
+      gpsSource = "Photo EXIF (taken location)";
+      appendDebug("✅ Using EXIF GPS: " + lat + ", " + lng);
+      renderLocationBox(lat, lng, gpsSource);
+    } else {
+      appendDebug("⚠️ EXIF GPS missing. Fallback to Phone GPS.");
+    }
+  }
+
+  // 2) fallback to phone gps
+  if (lat === null || lng === null) {
+    try {
+      status.innerText = "📍 Fetching phone GPS...";
+      appendDebug("Fetching phone GPS...");
+
+      const deviceGps = await getDeviceGps();
+      lat = deviceGps.lat;
+      lng = deviceGps.lng;
+      gpsSource = "Phone GPS (upload location)";
+      appendDebug("✅ Using Phone GPS: " + lat + ", " + lng);
+      renderLocationBox(lat, lng, gpsSource);
+
+    } catch (err) {
+      appendDebug("❌ Phone GPS failed: " + err.message);
+      status.innerText = "❌ Location failed";
+      alert("Unable to fetch phone location. Please enable GPS.");
+      return;
+    }
+  }
+
+  appendDebug("\n--- GPS Used ---");
+  appendDebug("GPS Source: " + gpsSource);
+  appendDebug("Lat: " + lat);
+  appendDebug("Lng: " + lng);
+
+  // Convert and compress photos
+  try {
+    status.innerText = "🖼️ Preparing images...";
+    appendDebug("\n--- Image Preparation ---");
+    appendDebug("Compressing images...");
+
+    const images = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      appendDebug("Compressing: " + selectedFiles[i].name);
+      const img = await toBase64Compressed(selectedFiles[i]);
+      images.push(img);
+      appendDebug("Done: " + img.fileName);
+    }
+
+    const payload = {
+      latitude: lat,
+      longitude: lng,
+      clinicName,
+      clinicType,
+      clinicSize,
+      images
+    };
+
+    const payloadSize = JSON.stringify(payload).length;
+    appendDebug("\n--- Upload ---");
+    appendDebug("Payload size (chars): " + payloadSize);
+
+    status.innerText = "☁️ Uploading...";
+
+    const response = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+
+    const respText = await response.text();
+    appendDebug("Server response: " + respText);
+
+    status.innerText = "✅ Submitted successfully";
+
+    // Reset everything
+    document.getElementById("clinicName").value = "";
+    document.getElementById("photoInfo").innerText = "";
+    document.getElementById("photoList").innerHTML = "";
+    locationBox.innerHTML = "";
+
+    selectedFiles = [];
+    photoSource = null;
+
+    document.getElementById("cameraInput").value = "";
+    document.getElementById("galleryInput").value = "";
+
+  } catch (err) {
+    appendDebug("❌ Upload failed: " + err.message);
+    status.innerText = "❌ Upload failed";
+    alert("Upload failed. Please try again.");
+  }
+}
+
+/** ===============================
+ * SAFE TEXT
+ * =============================== */
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => ({
     "&": "&amp;",
