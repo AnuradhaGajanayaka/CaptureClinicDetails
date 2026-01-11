@@ -2,103 +2,117 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clinic Capture</title>
+  <title>BISTEC Care — Clinic Capture</title>
 </head>
 
-<body style="font-family: Arial; text-align: center; padding: 20px;">
+<body style="font-family: Arial, sans-serif; background:#f6f7fb; margin:0; padding:20px;">
 
-  <!-- BISTEC Care Logo -->
-  <img src="logo.png" alt="BISTEC Care" style="height:55px; margin-bottom:10px;">
+  <div style="max-width:420px; margin:0 auto;">
 
-  <h2 style="margin-top:0;">Clinic Capture</h2>
+    <!-- Header -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+      <img src="logo.png" alt="BISTEC Care" style="height:42px;">
+      <div style="text-align:left;">
+        <div style="font-size:16px; font-weight:700;">Clinic Capture</div>
+        <div style="font-size:12px; color:#666;">Field data collection</div>
+      </div>
+    </div>
 
-  <!-- Clinic Name -->
-  <input type="text"
-         id="clinicName"
-         placeholder="Clinic name"
-         style="font-size:18px; padding:12px; width:100%; max-width:360px;">
+    <!-- Main Card -->
+    <div style="background:white; border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,0.06); padding:16px;">
 
-  <br><br>
+      <!-- Clinic Name -->
+      <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">Clinic Name</div>
+      <input type="text" id="clinicName" placeholder="e.g. Smile Dental Clinic"
+             style="width:100%; box-sizing:border-box; font-size:16px; padding:12px; border-radius:12px; border:1px solid #ddd; outline:none;">
 
-  <!-- Clinic Type -->
-  <select id="clinicType"
-          style="font-size:18px; padding:12px; width:100%; max-width:360px;">
-    <option value="Dental">Dental</option>
-    <option value="Skin">Skin</option>
-    <option value="Other">Other</option>
-  </select>
+      <div style="height:12px;"></div>
 
-  <br><br>
+      <!-- Type + Size -->
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">Type</div>
+          <select id="clinicType"
+                  style="width:100%; box-sizing:border-box; font-size:16px; padding:12px; border-radius:12px; border:1px solid #ddd;">
+            <option value="Dental">Dental</option>
+            <option value="Skin">Skin</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
 
-  <!-- Clinic Size -->
-  <select id="clinicSize"
-          style="font-size:18px; padding:12px; width:100%; max-width:360px;">
-    <option value="Small">Small</option>
-    <option value="Medium">Medium</option>
-    <option value="Large">Large</option>
-  </select>
+        <div style="flex:1;">
+          <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">Size</div>
+          <select id="clinicSize"
+                  style="width:100%; box-sizing:border-box; font-size:16px; padding:12px; border-radius:12px; border:1px solid #ddd;">
+            <option value="Small">Small</option>
+            <option value="Medium">Medium</option>
+            <option value="Large">Large</option>
+          </select>
+        </div>
+      </div>
 
-  <br><br>
+      <div style="height:14px;"></div>
 
-  <!-- Two buttons -->
-  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
-    <button type="button" onclick="openCamera()"
-            style="font-size:18px; padding:12px 18px;">
-      📸 Take Photos
-    </button>
+      <!-- Photo buttons -->
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="openCamera()"
+                style="flex:1; border:0; border-radius:14px; padding:12px; font-size:15px; font-weight:700; background:#0b5cff; color:white;">
+          📸 Take Photos
+        </button>
 
-    <button type="button" onclick="openGallery()"
-            style="font-size:18px; padding:12px 18px;">
-      🖼️ Upload from Gallery
-    </button>
-  </div>
+        <button type="button" onclick="openGallery()"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:12px; font-size:15px; font-weight:700; background:#fff;">
+          🖼️ Gallery
+        </button>
+      </div>
 
-  <p id="photoInfo" style="margin: 0 0 10px 0; font-size:16px;"></p>
+      <div style="height:10px;"></div>
 
-  <!-- Selected photo list -->
-  <div id="photoList"
-       style="text-align:left; display:inline-block; width:100%; max-width:360px; font-size:14px;">
+      <!-- Selected photos -->
+      <div id="photoInfo" style="font-size:13px; color:#333; text-align:left; font-weight:700;"></div>
+      <div id="photoList" style="margin-top:6px; text-align:left; font-size:13px;"></div>
+
+      <!-- Location box -->
+      <div id="locationBox"
+           style="margin-top:12px; background:#f3f6ff; border:1px solid #dbe6ff; border-radius:14px; padding:10px; text-align:left; font-size:13px; display:none;">
+      </div>
+
+      <!-- Status -->
+      <div id="status"
+           style="margin-top:12px; font-size:14px; font-weight:700; color:#333; text-align:left;">
+      </div>
+
+      <!-- Submit -->
+      <button onclick="submitData()"
+              style="margin-top:14px; width:100%; border:0; border-radius:14px; padding:14px; font-size:16px; font-weight:800; background:#12b76a; color:white;">
+        ✅ Submit
+      </button>
+
+      <!-- Pilot debug toggle (optional) -->
+      <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; font-size:13px; color:#666;">
+        <span>Pilot Mode: Show debug on screen</span>
+        <input type="checkbox" id="showDebugToggle" onchange="refreshDebugUI()">
+      </div>
+
+      <!-- Debug panel (hidden by default) -->
+      <div id="debugBox"
+           style="margin-top:10px; display:none; background:#111; color:#fff; border-radius:12px; padding:10px; font-size:12px; text-align:left; white-space:pre-wrap;">
+      </div>
+
+    </div>
+
+    <div style="font-size:12px; color:#888; margin-top:12px; text-align:center;">
+      BISTEC Care • Field Capture Pilot
+    </div>
+
   </div>
 
   <!-- Hidden inputs -->
-  <input type="file"
-         id="cameraInput"
-         accept="image/*"
-         capture="environment"
-         multiple
-         style="display:none;"
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none;"
          onchange="handleFiles(this.files, 'camera')">
 
-  <input type="file"
-         id="galleryInput"
-         accept="image/*"
-         multiple
-         style="display:none;"
+  <input type="file" id="galleryInput" accept="image/*" multiple style="display:none;"
          onchange="handleFiles(this.files, 'gallery')">
-
-  <br><br>
-
-  <!-- Submit -->
-  <button onclick="submitData()"
-          style="font-size:20px; padding:15px 30px;">
-    Submit
-  </button>
-
-  <!-- Status -->
-  <p id="status" style="margin-top:12px; font-size:16px;"></p>
-
-  <!-- Location details -->
-  <div id="locationBox"
-       style="text-align:left; display:inline-block; width:100%; max-width:360px; font-size:14px; margin-top:12px;">
-  </div>
-
-  <!-- Debug Panel -->
-  <div id="debugBox"
-       style="text-align:left; display:inline-block; width:100%; max-width:360px;
-              font-size:13px; margin-top:12px; padding:10px; border:1px dashed #999; border-radius:8px;">
-    <b>Debug Panel</b>
-    <div id="debugText" style="white-space:pre-wrap; margin-top:6px;"></div>
-  </div>
 
   <!-- EXIF library -->
   <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
@@ -110,27 +124,42 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 const MAX_PHOTOS = 5;
 
-// Smaller = more reliable upload
+// smaller = reliable Apps Script upload
 const MAX_WIDTH = 1024;
 const JPEG_QUALITY = 0.6;
 
 /** ===============================
  * STATE
  * =============================== */
-// Instead of storing File objects (permission may be revoked),
-// we store stable in-memory copies.
-let selectedItems = []; // { name, type, buffer (ArrayBuffer) }
+let selectedItems = []; // { name, type, buffer }
 let photoSource = null;
+let gpsSource = null; // "EXIF" or "PHONE"
+
+// ✅ debug buffer (sent to Google Sheet)
+let debugBuffer = "";
 
 /** ===============================
- * DEBUG PANEL
+ * DEBUG HELPERS
  * =============================== */
-function setDebug(msg) {
-  document.getElementById("debugText").innerText = msg || "";
+function clearDebug() {
+  debugBuffer = "";
+  refreshDebugUI();
 }
-function appendDebug(msg) {
-  const el = document.getElementById("debugText");
-  el.innerText = (el.innerText ? el.innerText + "\n" : "") + msg;
+function appendDebug(line) {
+  debugBuffer += (debugBuffer ? "\n" : "") + line;
+  refreshDebugUI();
+}
+function refreshDebugUI() {
+  const show = document.getElementById("showDebugToggle")?.checked;
+  const box = document.getElementById("debugBox");
+  if (!box) return;
+
+  if (show) {
+    box.style.display = "block";
+    box.textContent = debugBuffer || "(empty)";
+  } else {
+    box.style.display = "none";
+  }
 }
 
 /** ===============================
@@ -144,23 +173,26 @@ function openGallery() {
 }
 
 /** ===============================
- * FILE HANDLING (IMPORTANT FIX)
- * Read files immediately and store ArrayBuffer
+ * FILE HANDLING
+ * Store in memory immediately (prevents Android permission revocation)
  * =============================== */
 async function handleFiles(files, source) {
   photoSource = source;
+  gpsSource = null;
 
-  setDebug("");
+  clearDebug();
+  setStatus("");
+  hideLocationBox();
+
   appendDebug("Photo source: " + source.toUpperCase());
 
   const newFiles = [...files];
   appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
 
-  // Reset picker values to allow selecting again
+  // reset pickers for future picks
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
-  // Add files until max
   for (const f of newFiles) {
     if (selectedItems.length >= MAX_PHOTOS) {
       appendDebug("⚠️ Max photos reached: " + MAX_PHOTOS);
@@ -169,24 +201,19 @@ async function handleFiles(files, source) {
     }
 
     try {
-      appendDebug("Reading file into memory: " + f.name);
-      const buffer = await f.arrayBuffer();  // <-- KEY FIX
-      selectedItems.push({
-        name: f.name,
-        type: f.type || "image/jpeg",
-        buffer
-      });
-      appendDebug("✅ Stored in memory: " + f.name + " (" + buffer.byteLength + " bytes)");
+      appendDebug("Reading into memory: " + f.name);
+      const buffer = await f.arrayBuffer();
+      selectedItems.push({ name: f.name, type: f.type || "image/jpeg", buffer });
+      appendDebug("✅ Stored: " + f.name + " (" + buffer.byteLength + " bytes)");
     } catch (err) {
-      appendDebug("❌ Failed reading file: " + f.name);
-      appendDebug("Reason: " + (err?.message || String(err)));
+      appendDebug("❌ Read failed: " + f.name + " | " + (err?.message || String(err)));
       alert("Cannot read selected file: " + f.name);
     }
   }
 
   updatePhotoUI();
 
-  // Quick EXIF test for Gallery
+  // EXIF quick test only if gallery mode
   if (photoSource === "gallery" && selectedItems.length > 0) {
     await quickExifTestUI();
   }
@@ -202,7 +229,7 @@ function updatePhotoUI() {
   const info = document.getElementById("photoInfo");
   const list = document.getElementById("photoList");
 
-  if (!selectedItems || selectedItems.length === 0) {
+  if (!selectedItems.length) {
     info.innerText = "";
     list.innerHTML = "";
     return;
@@ -211,27 +238,23 @@ function updatePhotoUI() {
   info.innerText = `✅ ${selectedItems.length} photo(s) selected`;
 
   list.innerHTML = `
-    <div style="font-weight:bold; margin-bottom:6px;">Selected photos:</div>
-    <ul style="margin:0; padding-left:18px;">
+    <ul style="margin:6px 0 0 0; padding-left:18px;">
       ${selectedItems.map((it, idx) => `
         <li style="margin-bottom:6px; display:flex; align-items:center; gap:10px;">
           <span style="flex:1; word-break:break-word;">${escapeHtml(it.name)}</span>
           <button type="button"
                   onclick="removePhoto(${idx})"
-                  style="font-size:12px; padding:6px 10px;">
+                  style="font-size:12px; padding:6px 10px; border-radius:10px; border:1px solid #ddd; background:#fff;">
             Remove
           </button>
         </li>
       `).join("")}
     </ul>
-    <div style="margin-top:8px; font-size:13px;">
-      Photo source: <b>${photoSource ? photoSource.toUpperCase() : "N/A"}</b>
-    </div>
   `;
 }
 
 /** ===============================
- * EXIF GPS (operate on Blob from buffer)
+ * EXIF helpers
  * =============================== */
 function itemToBlob(item) {
   return new Blob([item.buffer], { type: item.type || "image/jpeg" });
@@ -240,22 +263,22 @@ function itemToBlob(item) {
 async function getGpsFromExifItem(item) {
   try {
     if (typeof exifr === "undefined") {
-      appendDebug("❌ exifr library NOT loaded");
+      appendDebug("❌ exifr not loaded");
       return null;
     }
 
     const blob = itemToBlob(item);
 
-    // Method 1
+    // parse gps
     try {
       const data = await exifr.parse(blob, { gps: true });
-      appendDebug("EXIF parse(gps): " + JSON.stringify(data));
+      appendDebug("EXIF parse(gps): lat=" + data?.latitude + " lng=" + data?.longitude);
       if (data && data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
     } catch (e1) {
       appendDebug("EXIF parse(gps) failed: " + (e1?.message || String(e1)));
     }
 
-    // Method 2
+    // gps direct
     try {
       const gps = await exifr.gps(blob);
       appendDebug("EXIF gps(): " + JSON.stringify(gps));
@@ -266,7 +289,7 @@ async function getGpsFromExifItem(item) {
 
     return null;
   } catch (e) {
-    appendDebug("EXIF unexpected error: " + (e?.message || String(e)));
+    appendDebug("EXIF unexpected: " + (e?.message || String(e)));
     return null;
   }
 }
@@ -275,29 +298,21 @@ async function quickExifTestUI() {
   appendDebug("\n--- EXIF Quick Test ---");
 
   let found = null;
-
   for (const it of selectedItems) {
-    appendDebug("Checking EXIF GPS for: " + it.name);
+    appendDebug("Checking EXIF GPS: " + it.name);
     const gps = await getGpsFromExifItem(it);
-    if (gps) {
-      found = { fileName: it.name, ...gps };
-      break;
-    }
+    if (gps) { found = gps; break; }
   }
 
   if (found) {
-    appendDebug("✅ EXIF GPS FOUND");
-    appendDebug("File: " + found.fileName);
-    appendDebug("Lat: " + found.lat);
-    appendDebug("Lng: " + found.lng);
+    appendDebug("✅ EXIF GPS FOUND: " + found.lat + ", " + found.lng);
   } else {
-    appendDebug("⚠️ EXIF GPS NOT found in selected photos.");
-    appendDebug("App will fallback to Phone GPS.");
+    appendDebug("⚠️ EXIF GPS NOT found (will use Phone GPS)");
   }
 }
 
 /** ===============================
- * PHONE GPS
+ * Phone GPS
  * =============================== */
 function getDeviceGps() {
   return new Promise((resolve, reject) => {
@@ -310,17 +325,27 @@ function getDeviceGps() {
 }
 
 /** ===============================
- * LOCATION UI
+ * UI helpers
  * =============================== */
-function renderLocationBox(lat, lng, sourceLabel) {
-  const locationBox = document.getElementById("locationBox");
-  const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+function setStatus(text) {
+  document.getElementById("status").innerText = text || "";
+}
 
-  locationBox.innerHTML = `
-    <div style="font-weight:bold; margin-bottom:6px;">Location:</div>
-    <div>GPS Source: <b>${escapeHtml(sourceLabel)}</b></div>
-    <div>Latitude: ${lat}</div>
-    <div>Longitude: ${lng}</div>
+function hideLocationBox() {
+  const box = document.getElementById("locationBox");
+  box.style.display = "none";
+  box.innerHTML = "";
+}
+
+function showLocationBox(lat, lng, label) {
+  const box = document.getElementById("locationBox");
+  const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+  box.style.display = "block";
+  box.innerHTML = `
+    <div style="font-weight:800; margin-bottom:6px;">📍 Location</div>
+    <div style="font-size:12px; color:#333;">GPS Source: <b>${escapeHtml(label)}</b></div>
+    <div style="margin-top:6px;">Lat: ${lat}</div>
+    <div>Lng: ${lng}</div>
     <div style="margin-top:6px;">
       <a href="${mapUrl}" target="_blank">Open in Google Maps</a>
     </div>
@@ -328,16 +353,13 @@ function renderLocationBox(lat, lng, sourceLabel) {
 }
 
 /** ===============================
- * IMAGE COMPRESS (operate on Blob from buffer)
+ * Compress + base64 from memory
  * =============================== */
 async function itemToBase64Compressed(item) {
   const blob = itemToBlob(item);
-
-  // decode image from memory
   const imgBitmap = await createImageBitmap(blob);
 
   const scale = Math.min(1, MAX_WIDTH / imgBitmap.width);
-
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(imgBitmap.width * scale);
   canvas.height = Math.round(imgBitmap.height * scale);
@@ -359,147 +381,117 @@ async function itemToBase64Compressed(item) {
  * SUBMIT
  * =============================== */
 async function submitData() {
-  const status = document.getElementById("status");
-  const locationBox = document.getElementById("locationBox");
-
   const clinicName = document.getElementById("clinicName").value.trim();
   const clinicType = document.getElementById("clinicType").value;
   const clinicSize = document.getElementById("clinicSize").value;
 
   if (!clinicName) return alert("Enter clinic name");
-  if (!selectedItems || selectedItems.length === 0) return alert("Select at least 1 photo");
+  if (!selectedItems.length) return alert("Select at least 1 photo");
 
   appendDebug("\n--- Submit ---");
   appendDebug("Clinic: " + clinicName);
   appendDebug("Type: " + clinicType + ", Size: " + clinicSize);
-  appendDebug("Items count: " + selectedItems.length);
+  appendDebug("Photos: " + selectedItems.length);
 
-  status.innerText = "📍 Fetching location...";
-  locationBox.innerHTML = "";
+  setStatus("📍 Getting location...");
+  hideLocationBox();
 
-  let lat = null, lng = null, gpsSource = null;
+  let lat = null, lng = null;
 
-  // EXIF first for gallery uploads
+  // EXIF first if gallery
   if (photoSource === "gallery") {
-    status.innerText = "📍 Reading photo GPS (EXIF)...";
-    appendDebug("Reading EXIF GPS...");
-
-    let exifGps = null;
+    appendDebug("Trying EXIF GPS...");
     for (const it of selectedItems) {
-      exifGps = await getGpsFromExifItem(it);
-      if (exifGps) break;
+      const exifGps = await getGpsFromExifItem(it);
+      if (exifGps) { lat = exifGps.lat; lng = exifGps.lng; break; }
     }
-
-    if (exifGps) {
-      lat = exifGps.lat;
-      lng = exifGps.lng;
-      gpsSource = "Photo EXIF (taken location)";
-      renderLocationBox(lat, lng, gpsSource);
-      appendDebug("✅ Using EXIF GPS: " + lat + ", " + lng);
+    if (lat && lng) {
+      gpsSource = "EXIF";
+      showLocationBox(lat, lng, "Photo EXIF");
     } else {
-      appendDebug("⚠️ EXIF GPS missing. Fallback to Phone GPS.");
+      appendDebug("EXIF GPS missing. Fallback to phone GPS.");
     }
   }
 
-  // fallback GPS
+  // fallback to phone gps
   if (lat === null || lng === null) {
     try {
-      status.innerText = "📍 Fetching phone GPS...";
       const deviceGps = await getDeviceGps();
       lat = deviceGps.lat;
       lng = deviceGps.lng;
-      gpsSource = "Phone GPS (upload location)";
-      renderLocationBox(lat, lng, gpsSource);
-      appendDebug("✅ Using Phone GPS: " + lat + ", " + lng);
+      gpsSource = "PHONE";
+      showLocationBox(lat, lng, "Phone GPS");
     } catch (err) {
       appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
-      status.innerText = "❌ Location failed";
-      return alert("Phone GPS failed. Enable location.");
+      setStatus("❌ GPS failed");
+      return alert("Unable to fetch phone location. Enable GPS.");
     }
   }
 
-  // compress & upload
+  appendDebug("GPS used: " + gpsSource + " | " + lat + ", " + lng);
+
+  // compress
+  setStatus("🖼️ Preparing images...");
+  appendDebug("\n--- Image Compression ---");
+
+  const images = [];
+  for (const it of selectedItems) {
+    appendDebug("Compressing: " + it.name);
+    const img = await itemToBase64Compressed(it);
+    images.push(img);
+    appendDebug("Done: " + img.fileName + " | base64=" + img.base64.length);
+  }
+
+  // payload includes debugLog
+  const payload = {
+    latitude: lat,
+    longitude: lng,
+    clinicName,
+    clinicType,
+    clinicSize,
+    images,
+    photoSource: (photoSource || "").toUpperCase(),
+    gpsSource: gpsSource || "",
+    debugLog: debugBuffer
+  };
+
+  const payloadStr = JSON.stringify(payload);
+  appendDebug("\n--- Upload ---");
+  appendDebug("Payload chars: " + payloadStr.length);
+
+  setStatus("☁️ Uploading...");
+
   try {
-    status.innerText = "🖼️ Preparing images...";
-    appendDebug("\n--- Image Preparation ---");
+    const resp = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: payloadStr
+    });
 
-    const images = [];
-    for (const it of selectedItems) {
-      appendDebug("Compressing: " + it.name);
+    const respText = await resp.text();
+    appendDebug("HTTP: " + resp.status);
+    appendDebug("Response: " + respText);
 
-      let img;
-      try {
-        img = await itemToBase64Compressed(it);
-      } catch (e) {
-        appendDebug("❌ Failed to compress: " + it.name);
-        appendDebug("Reason: " + (e?.message || String(e)));
-        throw e;
-      }
-
-      images.push(img);
-      appendDebug("Done: " + img.fileName + " | base64 size: " + img.base64.length);
+    if (!resp.ok) {
+      setStatus("❌ Upload failed");
+      return alert("Upload failed (HTTP " + resp.status + ")");
     }
 
-    const payload = {
-      latitude: lat,
-      longitude: lng,
-      clinicName,
-      clinicType,
-      clinicSize,
-      images
-    };
+    setStatus("✅ Submitted successfully");
 
-    const payloadStr = JSON.stringify(payload);
+    // reset for next clinic
+    selectedItems = [];
+    photoSource = null;
+    gpsSource = null;
 
-    appendDebug("\n--- Upload ---");
-    appendDebug("Payload size (chars): " + payloadStr.length);
-    appendDebug("Sending to: " + WEB_APP_URL);
-
-    status.innerText = "☁️ Uploading...";
-
-    let response;
-    try {
-      response = await fetch(WEB_APP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: payloadStr
-      });
-    } catch (fetchErr) {
-      appendDebug("❌ Fetch failed (network): " + (fetchErr?.message || String(fetchErr)));
-      status.innerText = "❌ Upload failed";
-      return alert("Network upload failed.");
-    }
-
-    appendDebug("HTTP Status: " + response.status);
-
-    let respText = "";
-    try {
-      respText = await response.text();
-    } catch (readErr) {
-      appendDebug("❌ Response text read failed: " + (readErr?.message || String(readErr)));
-    }
-
-    appendDebug("Response body: " + respText);
-
-    if (!response.ok) {
-      status.innerText = "❌ Upload failed";
-      return alert("Upload failed (HTTP " + response.status + ")");
-    }
-
-    status.innerText = "✅ Submitted successfully";
-
-    // reset
     document.getElementById("clinicName").value = "";
     document.getElementById("photoInfo").innerText = "";
     document.getElementById("photoList").innerHTML = "";
-    locationBox.innerHTML = "";
-
-    selectedItems = [];
-    photoSource = null;
+    hideLocationBox();
 
   } catch (err) {
-    appendDebug("❌ Upload process failed: " + (err?.message || String(err)));
-    status.innerText = "❌ Upload failed";
+    appendDebug("❌ Upload error: " + (err?.message || String(err)));
+    setStatus("❌ Upload failed");
     alert("Upload failed. Please try again.");
   }
 }
