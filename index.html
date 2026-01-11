@@ -57,20 +57,20 @@
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Lead Type <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
-      <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <button type="button" id="btnLead"
-                onclick="setLeadType('Lead')"
-                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
-          Lead
-        </button>
-        <button type="button" id="btnProspect"
-                onclick="setLeadType('Prospect')"
-                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
-          Prospect
-        </button>
-        <button type="button"
-                onclick="setLeadType('')"
-                style="border:1px solid #eee; border-radius:14px; padding:10px 12px; font-size:13px; font-weight:700; background:#fafafa;">
+
+      <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+          <input type="radio" name="leadType" value="Lead" onchange="onLeadTypeChange()">
+          <span style="font-size:14px; font-weight:700;">Lead</span>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+          <input type="radio" name="leadType" value="Prospect" onchange="onLeadTypeChange()">
+          <span style="font-size:14px; font-weight:700;">Prospect</span>
+        </label>
+
+        <button type="button" onclick="clearLeadType()"
+                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:700; padding:6px 4px; cursor:pointer;">
           Clear
         </button>
       </div>
@@ -79,25 +79,25 @@
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Priority <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
-      <div style="display:flex; gap:10px; margin-bottom:14px;">
-        <button type="button" id="btnHigh"
-                onclick="setPriority('High')"
-                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
-          High
-        </button>
-        <button type="button" id="btnMedium"
-                onclick="setPriority('Medium')"
-                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
-          Medium
-        </button>
-        <button type="button" id="btnLow"
-                onclick="setPriority('Low')"
-                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
-          Low
-        </button>
-        <button type="button"
-                onclick="setPriority('')"
-                style="border:1px solid #eee; border-radius:14px; padding:10px 12px; font-size:13px; font-weight:700; background:#fafafa;">
+
+      <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:14px;">
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+          <input type="radio" name="priority" value="High" onchange="onPriorityChange()">
+          <span style="font-size:14px; font-weight:700;">High</span>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+          <input type="radio" name="priority" value="Medium" onchange="onPriorityChange()">
+          <span style="font-size:14px; font-weight:700;">Medium</span>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+          <input type="radio" name="priority" value="Low" onchange="onPriorityChange()">
+          <span style="font-size:14px; font-weight:700;">Low</span>
+        </label>
+
+        <button type="button" onclick="clearPriority()"
+                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:700; padding:6px 4px; cursor:pointer;">
           Clear
         </button>
       </div>
@@ -115,16 +115,6 @@
         </button>
       </div>
 
-      <div style="height:10px;"></div>
-            <button onclick="submitData()"
-              style="margin-top:14px; width:100%; border:0; border-radius:14px; padding:14px; font-size:16px; font-weight:800; background:#12b76a; color:white;">
-        ✅ Submit
-      </button>
-
-      <!-- Selected photos -->
-      <div id="photoInfo" style="font-size:13px; color:#333; text-align:left; font-weight:700;"></div>
-      <div id="photoList" style="margin-top:6px; text-align:left; font-size:13px;"></div>
-
       <!-- Location box -->
       <div id="locationBox"
            style="margin-top:12px; background:#f3f6ff; border:1px solid #dbe6ff; border-radius:14px; padding:10px; text-align:left; font-size:13px; display:none;">
@@ -136,15 +126,22 @@
       </div>
 
       <!-- Submit -->
+      <button onclick="submitData()"
+              style="margin-top:14px; width:100%; border:0; border-radius:14px; padding:14px; font-size:16px; font-weight:800; background:#12b76a; color:white;">
+        ✅ Submit
+      </button>
 
+      <!-- Selected photos moved below submit -->
+      <div id="photoInfo" style="margin-top:12px; font-size:13px; color:#333; text-align:left; font-weight:700;"></div>
+      <div id="photoList" style="margin-top:6px; text-align:left; font-size:13px;"></div>
 
-      <!-- Pilot debug toggle (optional) -->
+      <!-- Pilot debug toggle -->
       <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; font-size:13px; color:#666;">
-        <span>Pilot Mode: Show debug on screen</span>
+        <span>Pilot Mode: Show debug</span>
         <input type="checkbox" id="showDebugToggle" onchange="refreshDebugUI()">
       </div>
 
-      <!-- Debug panel (hidden by default) -->
+      <!-- Debug panel -->
       <div id="debugBox"
            style="margin-top:10px; display:none; background:#111; color:#fff; border-radius:12px; padding:10px; font-size:12px; text-align:left; white-space:pre-wrap;">
       </div>
@@ -164,9 +161,6 @@
   <input type="file" id="galleryInput" accept="image/*" multiple style="display:none;"
          onchange="handleFiles(this.files, 'gallery')">
 
-  <!-- EXIF library -->
-  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
-
 <script>
 /** ===============================
  * CONFIG
@@ -181,45 +175,17 @@ const JPEG_QUALITY = 0.6;
  * =============================== */
 let selectedItems = []; // { name, type, buffer }
 let photoSource = null;
-let gpsSource = null; // "EXIF" or "PHONE"
+let gpsSource = "PHONE";
 
-// NEW: optional attributes
-let leadType = "";   // "Lead" | "Prospect" | ""
-let priority = "";   // "High" | "Medium" | "Low" | ""
+// optional values
+let leadType = "";
+let priority = "";
 
-// debug buffer (sent to Google Sheet)
+// debug buffer sent to sheet
 let debugBuffer = "";
 
 /** ===============================
- * QUICK PICK UI
- * =============================== */
-function paintPickButtons() {
-  const onStyle = "border:0; background:#0b5cff; color:#fff; font-weight:900;";
-  const offStyle = "border:1px solid #ddd; background:#fff; color:#111; font-weight:800;";
-
-  document.getElementById("btnLead").style.cssText += (leadType === "Lead" ? onStyle : offStyle);
-  document.getElementById("btnProspect").style.cssText += (leadType === "Prospect" ? onStyle : offStyle);
-
-  // Priority buttons
-  document.getElementById("btnHigh").style.cssText += (priority === "High" ? onStyle : offStyle);
-  document.getElementById("btnMedium").style.cssText += (priority === "Medium" ? onStyle : offStyle);
-  document.getElementById("btnLow").style.cssText += (priority === "Low" ? onStyle : offStyle);
-}
-
-function setLeadType(val) {
-  leadType = val || "";
-  appendDebug("LeadType set: " + (leadType || "(empty)"));
-  paintPickButtons();
-}
-
-function setPriority(val) {
-  priority = val || "";
-  appendDebug("Priority set: " + (priority || "(empty)"));
-  paintPickButtons();
-}
-
-/** ===============================
- * DEBUG HELPERS
+ * Debug helpers
  * =============================== */
 function clearDebug() {
   debugBuffer = "";
@@ -243,7 +209,29 @@ function refreshDebugUI() {
 }
 
 /** ===============================
- * BUTTONS
+ * Lead/Priority radio logic
+ * =============================== */
+function onLeadTypeChange() {
+  leadType = document.querySelector('input[name="leadType"]:checked')?.value || "";
+  appendDebug("LeadType: " + (leadType || "(empty)"));
+}
+function clearLeadType() {
+  document.querySelectorAll('input[name="leadType"]').forEach(r => r.checked = false);
+  leadType = "";
+  appendDebug("LeadType cleared");
+}
+function onPriorityChange() {
+  priority = document.querySelector('input[name="priority"]:checked')?.value || "";
+  appendDebug("Priority: " + (priority || "(empty)"));
+}
+function clearPriority() {
+  document.querySelectorAll('input[name="priority"]').forEach(r => r.checked = false);
+  priority = "";
+  appendDebug("Priority cleared");
+}
+
+/** ===============================
+ * Buttons
  * =============================== */
 function openCamera() {
   document.getElementById("cameraInput").click();
@@ -253,17 +241,14 @@ function openGallery() {
 }
 
 /** ===============================
- * FILE HANDLING
- * Store in memory immediately
+ * File handling (store in memory immediately)
  * =============================== */
 async function handleFiles(files, source) {
   photoSource = source;
-  gpsSource = null;
 
   clearDebug();
   setStatus("");
   hideLocationBox();
-  paintPickButtons();
 
   appendDebug("Photo source: " + source.toUpperCase());
 
@@ -296,7 +281,7 @@ async function handleFiles(files, source) {
 }
 
 /** ===============================
- * Photo UI
+ * Photo list UI
  * =============================== */
 function removePhoto(index) {
   selectedItems.splice(index, 1);
@@ -333,7 +318,7 @@ function updatePhotoUI() {
 }
 
 /** ===============================
- * Phone GPS
+ * GPS
  * =============================== */
 function getDeviceGps() {
   return new Promise((resolve, reject) => {
@@ -351,13 +336,11 @@ function getDeviceGps() {
 function setStatus(text) {
   document.getElementById("status").innerText = text || "";
 }
-
 function hideLocationBox() {
   const box = document.getElementById("locationBox");
   box.style.display = "none";
   box.innerHTML = "";
 }
-
 function showLocationBox(lat, lng, label) {
   const box = document.getElementById("locationBox");
   const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
@@ -374,12 +357,11 @@ function showLocationBox(lat, lng, label) {
 }
 
 /** ===============================
- * Compress + base64 from memory
+ * Compress + base64
  * =============================== */
 function itemToBlob(item) {
   return new Blob([item.buffer], { type: item.type || "image/jpeg" });
 }
-
 async function itemToBase64Compressed(item) {
   const blob = itemToBlob(item);
   const imgBitmap = await createImageBitmap(blob);
@@ -410,8 +392,7 @@ async function submitData() {
   const clinicType = document.getElementById("clinicType").value;
   const clinicSize = document.getElementById("clinicSize").value;
 
-  // LeadType & Priority are NOT mandatory by design.
-
+  // optional: leadType & priority can be blank
   if (!clinicName) return alert("Enter clinic name");
   if (!selectedItems.length) return alert("Select at least 1 photo");
 
@@ -422,17 +403,14 @@ async function submitData() {
   appendDebug("Priority: " + (priority || "(empty)"));
   appendDebug("Photos: " + selectedItems.length);
 
-  setStatus("📍 Getting location...");
+  setStatus("📍 Getting phone GPS...");
   hideLocationBox();
 
-  let lat = null, lng = null;
-
-  // For pilot: always use phone GPS (EXIF not reliable)
+  let lat, lng;
   try {
     const deviceGps = await getDeviceGps();
     lat = deviceGps.lat;
     lng = deviceGps.lng;
-    gpsSource = "PHONE";
     showLocationBox(lat, lng, "Phone GPS");
   } catch (err) {
     appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
@@ -440,9 +418,6 @@ async function submitData() {
     return alert("Unable to fetch phone location. Enable GPS.");
   }
 
-  appendDebug("GPS used: " + gpsSource + " | " + lat + ", " + lng);
-
-  // compress
   setStatus("🖼️ Preparing images...");
   appendDebug("\n--- Image Compression ---");
 
@@ -454,7 +429,6 @@ async function submitData() {
     appendDebug("Done: " + img.fileName + " | base64=" + img.base64.length);
   }
 
-  // payload includes new fields
   const payload = {
     latitude: lat,
     longitude: lng,
@@ -465,7 +439,7 @@ async function submitData() {
     leadType: leadType || "",
     priority: priority || "",
     photoSource: (photoSource || "").toUpperCase(),
-    gpsSource: gpsSource || "",
+    gpsSource: gpsSource || "PHONE",
     debugLog: debugBuffer
   };
 
@@ -493,14 +467,9 @@ async function submitData() {
 
     setStatus("✅ Submitted successfully");
 
-    // reset for next clinic
+    // reset form
     selectedItems = [];
     photoSource = null;
-    gpsSource = null;
-
-    // DO NOT clear leadType/priority (optional)
-    // comment out if you want them reset:
-    // leadType = ""; priority = ""; paintPickButtons();
 
     document.getElementById("clinicName").value = "";
     document.getElementById("photoInfo").innerText = "";
@@ -521,14 +490,11 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => ({
     "&": "&amp;",
     "<": "&lt;",
-    ">": "&gt;",
+    ">": "&lt;",
     '"': "&quot;",
     "'": "&#039;"
   })[m]);
 }
-
-// init paint
-paintPickButtons();
 </script>
 
 </body>
