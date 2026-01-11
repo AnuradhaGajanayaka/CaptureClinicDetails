@@ -5,33 +5,51 @@
   <title>BISTEC Care — Clinic Capture</title>
 
   <style>
+    /* Radio pill */
     .radio-pill {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      border: 0;                 /* no border */
-      border-radius: 12px;
-      background: #f3f4f6;        /* light grey */
+      gap: 6px;
+      padding: 8px 10px;         /* compact */
+      border: 0;
+      border-radius: 999px;      /* pill */
+      background: #f3f4f6;       /* grey */
       cursor: pointer;
       user-select: none;
+      line-height: 1;
     }
 
     .radio-pill input[type="radio"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #0b5cff;      /* modern browsers */
+      width: 15px;
+      height: 15px;
+      accent-color: #0b5cff;
+      margin: 0;
     }
 
     .radio-pill span {
-      font-size: 14px;
+      font-size: 13px;           /* compact */
       font-weight: 800;
       color: #111;
+      white-space: nowrap;
     }
 
     .radio-pill.selected {
-      background: #e7f0ff;        /* light blue when selected */
+      background: #e7f0ff;       /* light blue */
     }
+
+    /* Group row: keeps everything in one row (with wrap only if screen too small) */
+    .radio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;                  /* compact spacing */
+      flex-wrap: nowrap;         /* try to keep single line */
+      overflow-x: auto;          /* allow horizontal scroll if needed */
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+
+    /* Hide ugly scrollbar (optional) */
+    .radio-row::-webkit-scrollbar { height: 0; }
   </style>
 </head>
 
@@ -81,14 +99,14 @@
         </div>
       </div>
 
-      <div style="height:14px;"></div>
+      <div style="height:12px;"></div>
 
-      <!-- Lead Type -->
+      <!-- Lead Type (compact single row) -->
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Lead Type <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
 
-      <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:12px;">
+      <div class="radio-row" style="margin-bottom:10px;">
         <label class="radio-pill">
           <input type="radio" name="leadType" value="Lead" onchange="onLeadTypeChange()">
           <span>Lead</span>
@@ -100,17 +118,17 @@
         </label>
 
         <button type="button" onclick="clearLeadType()"
-                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:700; padding:6px 4px; cursor:pointer;">
+                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:800; padding:6px 4px; cursor:pointer; white-space:nowrap;">
           Clear
         </button>
       </div>
 
-      <!-- Priority -->
+      <!-- Priority (compact single row) -->
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Priority <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
 
-      <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:14px;">
+      <div class="radio-row" style="margin-bottom:12px;">
         <label class="radio-pill">
           <input type="radio" name="priority" value="High" onchange="onPriorityChange()">
           <span>High</span>
@@ -127,7 +145,7 @@
         </label>
 
         <button type="button" onclick="clearPriority()"
-                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:700; padding:6px 4px; cursor:pointer;">
+                style="border:0; background:transparent; color:#666; font-size:13px; font-weight:800; padding:6px 4px; cursor:pointer; white-space:nowrap;">
           Clear
         </button>
       </div>
@@ -207,11 +225,9 @@ let selectedItems = []; // { name, type, buffer }
 let photoSource = null;
 let gpsSource = "PHONE";
 
-// optional values
 let leadType = "";
 let priority = "";
 
-// debug buffer sent to sheet
 let debugBuffer = "";
 
 /** ===============================
@@ -257,20 +273,17 @@ function onLeadTypeChange() {
   appendDebug("LeadType: " + (leadType || "(empty)"));
   refreshRadioPills();
 }
-
 function clearLeadType() {
   document.querySelectorAll('input[name="leadType"]').forEach(r => r.checked = false);
   leadType = "";
   appendDebug("LeadType cleared");
   refreshRadioPills();
 }
-
 function onPriorityChange() {
   priority = document.querySelector('input[name="priority"]:checked')?.value || "";
   appendDebug("Priority: " + (priority || "(empty)"));
   refreshRadioPills();
 }
-
 function clearPriority() {
   document.querySelectorAll('input[name="priority"]').forEach(r => r.checked = false);
   priority = "";
@@ -289,7 +302,7 @@ function openGallery() {
 }
 
 /** ===============================
- * File handling (store in memory immediately)
+ * File handling
  * =============================== */
 async function handleFiles(files, source) {
   photoSource = source;
@@ -303,7 +316,6 @@ async function handleFiles(files, source) {
   const newFiles = [...files];
   appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
 
-  // reset pickers
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
@@ -313,7 +325,6 @@ async function handleFiles(files, source) {
       alert("Max " + MAX_PHOTOS + " photos per clinic");
       break;
     }
-
     try {
       appendDebug("Reading into memory: " + f.name);
       const buffer = await f.arrayBuffer();
@@ -336,7 +347,6 @@ function removePhoto(index) {
   updatePhotoUI();
   appendDebug("Removed photo index: " + index);
 }
-
 function updatePhotoUI() {
   const info = document.getElementById("photoInfo");
   const list = document.getElementById("photoList");
@@ -514,11 +524,10 @@ async function submitData() {
 
     setStatus("✅ Submitted successfully");
 
-    // reset form
+    // reset
     selectedItems = [];
     photoSource = null;
 
-    // reset leadType & priority as well
     clearLeadType();
     clearPriority();
 
