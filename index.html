@@ -3,6 +3,36 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BISTEC Care — Clinic Capture</title>
+
+  <style>
+    .radio-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 0;                 /* no border */
+      border-radius: 12px;
+      background: #f3f4f6;        /* light grey */
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .radio-pill input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #0b5cff;      /* modern browsers */
+    }
+
+    .radio-pill span {
+      font-size: 14px;
+      font-weight: 800;
+      color: #111;
+    }
+
+    .radio-pill.selected {
+      background: #e7f0ff;        /* light blue when selected */
+    }
+  </style>
 </head>
 
 <body style="font-family: Arial, sans-serif; background:#f6f7fb; margin:0; padding:20px;">
@@ -45,7 +75,7 @@
           <select id="clinicSize"
                   style="width:100%; box-sizing:border-box; font-size:16px; padding:12px; border-radius:12px; border:1px solid #ddd;">
             <option value="Small">Small</option>
-            <option value="Medium">Medium</option>
+            <option value="Medium" selected>Medium</option>
             <option value="Large">Large</option>
           </select>
         </div>
@@ -53,20 +83,20 @@
 
       <div style="height:14px;"></div>
 
-      <!-- Lead Type (optional) -->
+      <!-- Lead Type -->
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Lead Type <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
 
       <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:12px;">
-        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+        <label class="radio-pill">
           <input type="radio" name="leadType" value="Lead" onchange="onLeadTypeChange()">
-          <span style="font-size:14px; font-weight:700;">Lead</span>
+          <span>Lead</span>
         </label>
 
-        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+        <label class="radio-pill">
           <input type="radio" name="leadType" value="Prospect" onchange="onLeadTypeChange()">
-          <span style="font-size:14px; font-weight:700;">Prospect</span>
+          <span>Prospect</span>
         </label>
 
         <button type="button" onclick="clearLeadType()"
@@ -75,25 +105,25 @@
         </button>
       </div>
 
-      <!-- Priority (optional) -->
+      <!-- Priority -->
       <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
         Priority <span style="font-weight:500; color:#888;">(optional)</span>
       </div>
 
       <div style="display:flex; gap:12px; align-items:center; justify-content:flex-start; flex-wrap:wrap; margin-bottom:14px;">
-        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+        <label class="radio-pill">
           <input type="radio" name="priority" value="High" onchange="onPriorityChange()">
-          <span style="font-size:14px; font-weight:700;">High</span>
+          <span>High</span>
         </label>
 
-        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+        <label class="radio-pill">
           <input type="radio" name="priority" value="Medium" onchange="onPriorityChange()">
-          <span style="font-size:14px; font-weight:700;">Medium</span>
+          <span>Medium</span>
         </label>
 
-        <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #ddd; border-radius:12px; background:#fff; cursor:pointer;">
+        <label class="radio-pill">
           <input type="radio" name="priority" value="Low" onchange="onPriorityChange()">
-          <span style="font-size:14px; font-weight:700;">Low</span>
+          <span>Low</span>
         </label>
 
         <button type="button" onclick="clearPriority()"
@@ -131,7 +161,7 @@
         ✅ Submit
       </button>
 
-      <!-- Selected photos moved below submit -->
+      <!-- Selected photos below submit -->
       <div id="photoInfo" style="margin-top:12px; font-size:13px; color:#333; text-align:left; font-weight:700;"></div>
       <div id="photoList" style="margin-top:6px; text-align:left; font-size:13px;"></div>
 
@@ -209,25 +239,43 @@ function refreshDebugUI() {
 }
 
 /** ===============================
+ * Radio pill highlighting
+ * =============================== */
+function refreshRadioPills() {
+  document.querySelectorAll(".radio-pill").forEach(pill => {
+    const input = pill.querySelector('input[type="radio"]');
+    if (input && input.checked) pill.classList.add("selected");
+    else pill.classList.remove("selected");
+  });
+}
+
+/** ===============================
  * Lead/Priority radio logic
  * =============================== */
 function onLeadTypeChange() {
   leadType = document.querySelector('input[name="leadType"]:checked')?.value || "";
   appendDebug("LeadType: " + (leadType || "(empty)"));
+  refreshRadioPills();
 }
+
 function clearLeadType() {
   document.querySelectorAll('input[name="leadType"]').forEach(r => r.checked = false);
   leadType = "";
   appendDebug("LeadType cleared");
+  refreshRadioPills();
 }
+
 function onPriorityChange() {
   priority = document.querySelector('input[name="priority"]:checked')?.value || "";
   appendDebug("Priority: " + (priority || "(empty)"));
+  refreshRadioPills();
 }
+
 function clearPriority() {
   document.querySelectorAll('input[name="priority"]').forEach(r => r.checked = false);
   priority = "";
   appendDebug("Priority cleared");
+  refreshRadioPills();
 }
 
 /** ===============================
@@ -392,7 +440,6 @@ async function submitData() {
   const clinicType = document.getElementById("clinicType").value;
   const clinicSize = document.getElementById("clinicSize").value;
 
-  // optional: leadType & priority can be blank
   if (!clinicName) return alert("Enter clinic name");
   if (!selectedItems.length) return alert("Select at least 1 photo");
 
@@ -471,6 +518,10 @@ async function submitData() {
     selectedItems = [];
     photoSource = null;
 
+    // reset leadType & priority as well
+    clearLeadType();
+    clearPriority();
+
     document.getElementById("clinicName").value = "";
     document.getElementById("photoInfo").innerText = "";
     document.getElementById("photoList").innerHTML = "";
@@ -490,11 +541,14 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => ({
     "&": "&amp;",
     "<": "&lt;",
-    ">": "&lt;",
+    ">": "&gt;",
     '"': "&quot;",
     "'": "&#039;"
   })[m]);
 }
+
+// initial paint
+refreshRadioPills();
 </script>
 
 </body>
