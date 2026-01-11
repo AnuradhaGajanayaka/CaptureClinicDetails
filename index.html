@@ -53,6 +53,55 @@
 
       <div style="height:14px;"></div>
 
+      <!-- Lead Type (optional) -->
+      <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
+        Lead Type <span style="font-weight:500; color:#888;">(optional)</span>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <button type="button" id="btnLead"
+                onclick="setLeadType('Lead')"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
+          Lead
+        </button>
+        <button type="button" id="btnProspect"
+                onclick="setLeadType('Prospect')"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
+          Prospect
+        </button>
+        <button type="button"
+                onclick="setLeadType('')"
+                style="border:1px solid #eee; border-radius:14px; padding:10px 12px; font-size:13px; font-weight:700; background:#fafafa;">
+          Clear
+        </button>
+      </div>
+
+      <!-- Priority (optional) -->
+      <div style="text-align:left; font-size:13px; color:#333; margin-bottom:6px; font-weight:600;">
+        Priority <span style="font-weight:500; color:#888;">(optional)</span>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <button type="button" id="btnHigh"
+                onclick="setPriority('High')"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
+          High
+        </button>
+        <button type="button" id="btnMedium"
+                onclick="setPriority('Medium')"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
+          Medium
+        </button>
+        <button type="button" id="btnLow"
+                onclick="setPriority('Low')"
+                style="flex:1; border:1px solid #ddd; border-radius:14px; padding:10px; font-size:14px; font-weight:800; background:#fff;">
+          Low
+        </button>
+        <button type="button"
+                onclick="setPriority('')"
+                style="border:1px solid #eee; border-radius:14px; padding:10px 12px; font-size:13px; font-weight:700; background:#fafafa;">
+          Clear
+        </button>
+      </div>
+
       <!-- Photo buttons -->
       <div style="display:flex; gap:10px;">
         <button type="button" onclick="openCamera()"
@@ -67,6 +116,10 @@
       </div>
 
       <div style="height:10px;"></div>
+            <button onclick="submitData()"
+              style="margin-top:14px; width:100%; border:0; border-radius:14px; padding:14px; font-size:16px; font-weight:800; background:#12b76a; color:white;">
+        ✅ Submit
+      </button>
 
       <!-- Selected photos -->
       <div id="photoInfo" style="font-size:13px; color:#333; text-align:left; font-weight:700;"></div>
@@ -83,10 +136,7 @@
       </div>
 
       <!-- Submit -->
-      <button onclick="submitData()"
-              style="margin-top:14px; width:100%; border:0; border-radius:14px; padding:14px; font-size:16px; font-weight:800; background:#12b76a; color:white;">
-        ✅ Submit
-      </button>
+
 
       <!-- Pilot debug toggle (optional) -->
       <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; font-size:13px; color:#666;">
@@ -123,8 +173,6 @@
  * =============================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzj1dwf7pPHYBbLBgyHZObxLNWw4UmCvEeerYrkTCpyIYc4oLcKtMz3wByMeSJ8pYmr7w/exec";
 const MAX_PHOTOS = 5;
-
-// smaller = reliable Apps Script upload
 const MAX_WIDTH = 1024;
 const JPEG_QUALITY = 0.6;
 
@@ -135,8 +183,40 @@ let selectedItems = []; // { name, type, buffer }
 let photoSource = null;
 let gpsSource = null; // "EXIF" or "PHONE"
 
-// ✅ debug buffer (sent to Google Sheet)
+// NEW: optional attributes
+let leadType = "";   // "Lead" | "Prospect" | ""
+let priority = "";   // "High" | "Medium" | "Low" | ""
+
+// debug buffer (sent to Google Sheet)
 let debugBuffer = "";
+
+/** ===============================
+ * QUICK PICK UI
+ * =============================== */
+function paintPickButtons() {
+  const onStyle = "border:0; background:#0b5cff; color:#fff; font-weight:900;";
+  const offStyle = "border:1px solid #ddd; background:#fff; color:#111; font-weight:800;";
+
+  document.getElementById("btnLead").style.cssText += (leadType === "Lead" ? onStyle : offStyle);
+  document.getElementById("btnProspect").style.cssText += (leadType === "Prospect" ? onStyle : offStyle);
+
+  // Priority buttons
+  document.getElementById("btnHigh").style.cssText += (priority === "High" ? onStyle : offStyle);
+  document.getElementById("btnMedium").style.cssText += (priority === "Medium" ? onStyle : offStyle);
+  document.getElementById("btnLow").style.cssText += (priority === "Low" ? onStyle : offStyle);
+}
+
+function setLeadType(val) {
+  leadType = val || "";
+  appendDebug("LeadType set: " + (leadType || "(empty)"));
+  paintPickButtons();
+}
+
+function setPriority(val) {
+  priority = val || "";
+  appendDebug("Priority set: " + (priority || "(empty)"));
+  paintPickButtons();
+}
 
 /** ===============================
  * DEBUG HELPERS
@@ -174,7 +254,7 @@ function openGallery() {
 
 /** ===============================
  * FILE HANDLING
- * Store in memory immediately (prevents Android permission revocation)
+ * Store in memory immediately
  * =============================== */
 async function handleFiles(files, source) {
   photoSource = source;
@@ -183,13 +263,14 @@ async function handleFiles(files, source) {
   clearDebug();
   setStatus("");
   hideLocationBox();
+  paintPickButtons();
 
   appendDebug("Photo source: " + source.toUpperCase());
 
   const newFiles = [...files];
   appendDebug("New files: " + newFiles.map(f => f.name).join(", "));
 
-  // reset pickers for future picks
+  // reset pickers
   document.getElementById("cameraInput").value = "";
   document.getElementById("galleryInput").value = "";
 
@@ -212,13 +293,11 @@ async function handleFiles(files, source) {
   }
 
   updatePhotoUI();
-
-  // EXIF quick test only if gallery mode
-  if (photoSource === "gallery" && selectedItems.length > 0) {
-    await quickExifTestUI();
-  }
 }
 
+/** ===============================
+ * Photo UI
+ * =============================== */
 function removePhoto(index) {
   selectedItems.splice(index, 1);
   updatePhotoUI();
@@ -251,64 +330,6 @@ function updatePhotoUI() {
       `).join("")}
     </ul>
   `;
-}
-
-/** ===============================
- * EXIF helpers
- * =============================== */
-function itemToBlob(item) {
-  return new Blob([item.buffer], { type: item.type || "image/jpeg" });
-}
-
-async function getGpsFromExifItem(item) {
-  try {
-    if (typeof exifr === "undefined") {
-      appendDebug("❌ exifr not loaded");
-      return null;
-    }
-
-    const blob = itemToBlob(item);
-
-    // parse gps
-    try {
-      const data = await exifr.parse(blob, { gps: true });
-      appendDebug("EXIF parse(gps): lat=" + data?.latitude + " lng=" + data?.longitude);
-      if (data && data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
-    } catch (e1) {
-      appendDebug("EXIF parse(gps) failed: " + (e1?.message || String(e1)));
-    }
-
-    // gps direct
-    try {
-      const gps = await exifr.gps(blob);
-      appendDebug("EXIF gps(): " + JSON.stringify(gps));
-      if (gps && gps.latitude && gps.longitude) return { lat: gps.latitude, lng: gps.longitude };
-    } catch (e2) {
-      appendDebug("EXIF gps() failed: " + (e2?.message || String(e2)));
-    }
-
-    return null;
-  } catch (e) {
-    appendDebug("EXIF unexpected: " + (e?.message || String(e)));
-    return null;
-  }
-}
-
-async function quickExifTestUI() {
-  appendDebug("\n--- EXIF Quick Test ---");
-
-  let found = null;
-  for (const it of selectedItems) {
-    appendDebug("Checking EXIF GPS: " + it.name);
-    const gps = await getGpsFromExifItem(it);
-    if (gps) { found = gps; break; }
-  }
-
-  if (found) {
-    appendDebug("✅ EXIF GPS FOUND: " + found.lat + ", " + found.lng);
-  } else {
-    appendDebug("⚠️ EXIF GPS NOT found (will use Phone GPS)");
-  }
 }
 
 /** ===============================
@@ -355,6 +376,10 @@ function showLocationBox(lat, lng, label) {
 /** ===============================
  * Compress + base64 from memory
  * =============================== */
+function itemToBlob(item) {
+  return new Blob([item.buffer], { type: item.type || "image/jpeg" });
+}
+
 async function itemToBase64Compressed(item) {
   const blob = itemToBlob(item);
   const imgBitmap = await createImageBitmap(blob);
@@ -385,12 +410,16 @@ async function submitData() {
   const clinicType = document.getElementById("clinicType").value;
   const clinicSize = document.getElementById("clinicSize").value;
 
+  // LeadType & Priority are NOT mandatory by design.
+
   if (!clinicName) return alert("Enter clinic name");
   if (!selectedItems.length) return alert("Select at least 1 photo");
 
   appendDebug("\n--- Submit ---");
   appendDebug("Clinic: " + clinicName);
   appendDebug("Type: " + clinicType + ", Size: " + clinicSize);
+  appendDebug("LeadType: " + (leadType || "(empty)"));
+  appendDebug("Priority: " + (priority || "(empty)"));
   appendDebug("Photos: " + selectedItems.length);
 
   setStatus("📍 Getting location...");
@@ -398,34 +427,17 @@ async function submitData() {
 
   let lat = null, lng = null;
 
-  // EXIF first if gallery
-  if (photoSource === "gallery") {
-    appendDebug("Trying EXIF GPS...");
-    for (const it of selectedItems) {
-      const exifGps = await getGpsFromExifItem(it);
-      if (exifGps) { lat = exifGps.lat; lng = exifGps.lng; break; }
-    }
-    if (lat && lng) {
-      gpsSource = "EXIF";
-      showLocationBox(lat, lng, "Photo EXIF");
-    } else {
-      appendDebug("EXIF GPS missing. Fallback to phone GPS.");
-    }
-  }
-
-  // fallback to phone gps
-  if (lat === null || lng === null) {
-    try {
-      const deviceGps = await getDeviceGps();
-      lat = deviceGps.lat;
-      lng = deviceGps.lng;
-      gpsSource = "PHONE";
-      showLocationBox(lat, lng, "Phone GPS");
-    } catch (err) {
-      appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
-      setStatus("❌ GPS failed");
-      return alert("Unable to fetch phone location. Enable GPS.");
-    }
+  // For pilot: always use phone GPS (EXIF not reliable)
+  try {
+    const deviceGps = await getDeviceGps();
+    lat = deviceGps.lat;
+    lng = deviceGps.lng;
+    gpsSource = "PHONE";
+    showLocationBox(lat, lng, "Phone GPS");
+  } catch (err) {
+    appendDebug("❌ Phone GPS failed: " + (err?.message || String(err)));
+    setStatus("❌ GPS failed");
+    return alert("Unable to fetch phone location. Enable GPS.");
   }
 
   appendDebug("GPS used: " + gpsSource + " | " + lat + ", " + lng);
@@ -442,7 +454,7 @@ async function submitData() {
     appendDebug("Done: " + img.fileName + " | base64=" + img.base64.length);
   }
 
-  // payload includes debugLog
+  // payload includes new fields
   const payload = {
     latitude: lat,
     longitude: lng,
@@ -450,6 +462,8 @@ async function submitData() {
     clinicType,
     clinicSize,
     images,
+    leadType: leadType || "",
+    priority: priority || "",
     photoSource: (photoSource || "").toUpperCase(),
     gpsSource: gpsSource || "",
     debugLog: debugBuffer
@@ -484,6 +498,10 @@ async function submitData() {
     photoSource = null;
     gpsSource = null;
 
+    // DO NOT clear leadType/priority (optional)
+    // comment out if you want them reset:
+    // leadType = ""; priority = ""; paintPickButtons();
+
     document.getElementById("clinicName").value = "";
     document.getElementById("photoInfo").innerText = "";
     document.getElementById("photoList").innerHTML = "";
@@ -508,6 +526,9 @@ function escapeHtml(str) {
     "'": "&#039;"
   })[m]);
 }
+
+// init paint
+paintPickButtons();
 </script>
 
 </body>
